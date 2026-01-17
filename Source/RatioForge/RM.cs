@@ -11,6 +11,8 @@ namespace RatioForge
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Windows.Forms;
+    using System.Net.Security;
+    using System.Security.Cryptography.X509Certificates;
 
     using BitTorrent;
 
@@ -937,9 +939,9 @@ namespace RatioForge
                                 decimal leechers = BEncode.String(dictionary1["incomplete"]).ParseValidInt(0);
                                 if (leechers == 0)
                                 {
-                                    AddLogLine("Min number of leechers reached... setting upload speed to 0");
-                                    updateTextBox(uploadRate, "0");
-                                    chkRandUP.Checked = false;
+                                    // AddLogLine("Min number of leechers reached... setting upload speed to 0");
+                                    // updateTextBox(uploadRate, "0");
+                                    // chkRandUP.Checked = false;
                                 }
                             }
                         }
@@ -1623,64 +1625,135 @@ namespace RatioForge
                 }
 
                 string cmd = "GET " + path + " " + currentClient.HttpProtocol + "\r\n" + currentClient.Headers.Replace("{host}", host) + "\r\n";
-                AddLogLine("======== Sending Command to Tracker ========");
-                AddLogLine(cmd);
-                sock.Send(_usedEnc.GetBytes(cmd));
+        AddLogLine("======== Sending Command to Tracker ========");
+        AddLogLine(cmd);
 
-                // simple reading loop
-                // read while have the data
-                try
+        // HTTPS Support
+        if (reqUri.Scheme.ToLower() == "https")
+        {
+            try
+            {
+                AddLogLine("Initiating SSL/TLS Handshake...");
+                // Wrap the existing connected socket in a NetworkStream, then SslStream
+                // ownsSocket: false so we don't close the socket when disposing the stream (managed by `sock` cleanup mostly, though we need to be careful)
+                NetworkStream ns = new NetworkStream(sock.SystemSocket, false);
+                // Use a custom validation callback
+                SslStream sslStream = new SslStream(ns, false, new RemoteCertificateValidationCallback(ValidateServerCertificate));
+                
+                // Authenticate
+                sslStream.AuthenticateAsClient(host);
+                AddLogLine("SSL/TLS Handshake Completed.");
+
+                // Send GET request
+                byte[] requestBytes = _usedEnc.GetBytes(cmd);
+                sslStream.Write(requestBytes, 0, requestBytes.Length);
+                sslStream.Flush();
+
+                // Read Response
+                MemoryStream memStream = new MemoryStream();
+                byte[] buffer = new byte[32 * 1024];
+                int bytesRead;
+
+                // Read until the stream is closed or we have data (simple approach)
+                // Note: HTTP 1.1 might keep connection alive, but usually trackers close or we can rely on reading until 0 if not chunked loop hell.
+                // For this simple implementation, we read until socket close or timeout.
+                do
                 {
-                    byte[] data = new byte[32 * 1024];
-                    MemoryStream memStream = new MemoryStream();
-                    while (true)
+                    bytesRead = sslStream.Read(buffer, 0, buffer.Length);
+                    if (bytesRead > 0)
                     {
-                        int dataLen = sock.Receive(data);
-                        if (0 == dataLen)
-                            break;
-                        memStream.Write(data, 0, dataLen);
+                        memStream.Write(buffer, 0, bytesRead);
                     }
+                } while (bytesRead > 0);
 
-                    if (memStream.Length == 0)
-                    {
-                        AddLogLine("Error : Tracker Response is empty");
-                        return null;
-                    }
-
-                    trackerResponse = new TrackerResponse(memStream);
-                    if (trackerResponse.doRedirect)
-                    {
-                        return MakeWebRequestEx(new Uri(trackerResponse.RedirectionURL));
-                    }
-
-                    AddLogLine("======== Tracker Response ========");
-                    AddLogLine(trackerResponse.Headers);
-                    if (trackerResponse.Dict == null)
-                    {
-                        AddLogLine("*** Failed to decode tracker response :");
-                        AddLogLine(trackerResponse.Body);
-                    }
-
-                    memStream.Dispose();
-                    return trackerResponse;
-                }
-                catch (Exception ex)
+                if (memStream.Length == 0)
                 {
-                    sock.Close();
-                    AddLogLine(Environment.NewLine + ex.Message);
+                    AddLogLine("Error : Tracker Response is empty (SSL)");
                     return null;
                 }
+
+                memStream.Position = 0;
+                trackerResponse = new TrackerResponse(memStream);
+                
+                // Cleanup logic handled by outer finally/try-catch mostly, but we should dispose wrapper streams
+                // sslStream.Dispose(); // Avoid closing inner socket if we want to reuse? RatioMaster usually one-shots.
             }
             catch (Exception ex)
             {
-                if (null != sock) sock.Close();
-                AddLogLine("Exception:" + ex.Message);
+                AddLogLine("SSL Error: " + ex.Message);
+                sock.Close();
                 return null;
             }
-
-            // if (null != sock) sock.Close();
-            // else return null;
         }
+        else
+        {
+            // Original HTTP Logic
+            sock.Send(_usedEnc.GetBytes(cmd));
+
+            // simple reading loop
+            // read while have the data
+            try
+            {
+                byte[] data = new byte[32 * 1024];
+                MemoryStream memStream = new MemoryStream();
+                while (true)
+                {
+                    int dataLen = sock.Receive(data);
+                    if (0 == dataLen)
+                        break;
+                    memStream.Write(data, 0, dataLen);
+                }
+
+                if (memStream.Length == 0)
+                {
+                    AddLogLine("Error : Tracker Response is empty");
+                    return null;
+                }
+                
+                memStream.Position = 0; // Reset position for reading
+                trackerResponse = new TrackerResponse(memStream);
+            }
+            catch (Exception ex)
+            {
+                sock.Close();
+                AddLogLine(Environment.NewLine + ex.Message);
+                return null;
+            }
+        }
+
+        // Common Response Handling
+        if (trackerResponse.doRedirect)
+        {
+            return MakeWebRequestEx(new Uri(trackerResponse.RedirectionURL));
+        }
+
+        AddLogLine("======== Tracker Response ========");
+        AddLogLine(trackerResponse.Headers);
+        if (trackerResponse.Dict == null)
+        {
+            AddLogLine("*** Failed to decode tracker response :");
+            AddLogLine(trackerResponse.Body);
+        }
+
+        return trackerResponse;
+    }
+    catch (Exception ex)
+    {
+        if (null != sock) sock.Close();
+        AddLogLine("Exception:" + ex.Message);
+        return null;
+    }
+
+    // if (null != sock) sock.Close();
+    // else return null;
+}
+
+private static bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+{
+    // Accept all certificates (Emulation/Spoofing context often involves private trackers or self-signed)
+    // In a real security context, we check sslPolicyErrors
+    return true; 
+}
 
         internal void RemaningWork_Tick(object sender, EventArgs e)
         {
