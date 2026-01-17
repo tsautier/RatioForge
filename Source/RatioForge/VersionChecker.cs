@@ -9,7 +9,7 @@ namespace RatioForge
         public const string LocalVersion = "1.0.1";
         public const string PublicVersion = "1.0.1";
         public const string ReleaseDate = "17-01-2026";
-        private const string ProgramPageVersion = "http://ratiomaster.net/vc.php?v=";
+        private const string ProgramPageVersion = "https://raw.githubusercontent.com/tsautier/RatioForge/master/version.txt";
 
         private readonly string userAgent;
 
@@ -34,7 +34,8 @@ namespace RatioForge
                 this.Log = this.Log + ("Checking for new version..." + "\n");
                 this.RemoteVersion = this.GetServerVersionId();
                 //// mainForm.txtRemote.Text = remoteVersion;
-                if (this.RemoteVersion.Length != 4)
+                // Allow versions like 1.0.1 (5 chars) or 1.0.0.1 (7 chars). just check if it's too short or too long to be valid
+                if (this.RemoteVersion.Length < 3 || this.RemoteVersion.Length > 10)
                 {
                     this.RemoteVersion = "error";
                     this.Log = this.Log + ("Error checking new version!!!" + "\n" + "\n");
@@ -58,7 +59,7 @@ namespace RatioForge
 
         public string GetServerVersionId()
         {
-            var url = ProgramPageVersion + LocalVersion;
+            var url = ProgramPageVersion; // + LocalVersion;
             try
             {
                 var request1 = (HttpWebRequest)WebRequest.Create(url);
