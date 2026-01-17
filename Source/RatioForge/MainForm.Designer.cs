@@ -113,7 +113,7 @@ namespace RatioForge
             this.newToolStripMenuItem.Name = "newToolStripMenuItem";
             this.newToolStripMenuItem.ShortcutKeys = (System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T);
             this.newToolStripMenuItem.Size = new System.Drawing.Size(109, 20);
-            this.newToolStripMenuItem.Text = "New RatioMaster";
+            this.newToolStripMenuItem.Text = "New RatioForge";
             this.newToolStripMenuItem.Click += new System.EventHandler(this.newToolStripMenuItem_Click);
             // 
             // currentToolStripMenuItem
@@ -126,7 +126,7 @@ namespace RatioForge
             this.stopToolStripMenuItem});
             this.currentToolStripMenuItem.Name = "currentToolStripMenuItem";
             this.currentToolStripMenuItem.Size = new System.Drawing.Size(125, 20);
-            this.currentToolStripMenuItem.Text = "Current RatioMaster";
+            this.currentToolStripMenuItem.Text = "Current RatioForge";
             // 
             // removeToolStripMenuItem
             // 
@@ -175,7 +175,7 @@ namespace RatioForge
             this.clearAllLogsToolStripMenuItem});
             this.allRatioMastersToolStripMenuItem.Name = "allRatioMastersToolStripMenuItem";
             this.allRatioMastersToolStripMenuItem.Size = new System.Drawing.Size(107, 20);
-            this.allRatioMastersToolStripMenuItem.Text = "All RatioMasters ";
+            this.allRatioMastersToolStripMenuItem.Text = "All RatioForges ";
             // 
             // startToolStripMenuItem1
             // 
@@ -323,7 +323,7 @@ namespace RatioForge
             // 
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(198, 22);
-            this.aboutToolStripMenuItem.Text = "About RatioMaster.NET";
+            this.aboutToolStripMenuItem.Text = "About RatioForge";
             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
             // 
             // goToProgramPageToolStripMenuItem1
@@ -367,10 +367,10 @@ namespace RatioForge
             // trayIcon
             // 
             this.trayIcon.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
-            this.trayIcon.BalloonTipTitle = "RatioMaster.NET";
+            this.trayIcon.BalloonTipTitle = "RatioForge";
             this.trayIcon.ContextMenuStrip = this.menuRightClickTray;
             this.trayIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("trayIcon.Icon")));
-            this.trayIcon.Text = "RatioMaster.NET";
+            this.trayIcon.Text = "RatioForge";
             this.trayIcon.BalloonTipClicked += new System.EventHandler(this.trayIcon_BalloonTipClicked);
             this.trayIcon.BalloonTipClosed += new System.EventHandler(this.trayIcon_BalloonTipClosed);
             this.trayIcon.BalloonTipShown += new System.EventHandler(this.trayIcon_BalloonTipShown);
@@ -571,7 +571,7 @@ namespace RatioForge
             this.lblCodedBy.Name = "lblCodedBy";
             this.lblCodedBy.Size = new System.Drawing.Size(362, 17);
             this.lblCodedBy.Spring = true;
-            this.lblCodedBy.Text = "Coded by: Nikolay.IT © 2005-2016";
+            this.lblCodedBy.Text = "Coded by: Nikolay.IT © 2005-2016 | © 2026+ Thomas SAUTIER";
             this.lblCodedBy.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.lblCodedBy.Click += new System.EventHandler(this.lblCodedBy_Click);
             // 

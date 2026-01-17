@@ -27,7 +27,7 @@ namespace RatioForge
         internal MainForm()
         {
             InitializeComponent();
-            Text = "RatioMaster.NET " + VersionChecker.PublicVersion;
+            Text = "RatioForge " + VersionChecker.PublicVersion;
         }
 
         private void newToolStripMenuItem_Click(object sender, EventArgs e)
@@ -195,8 +195,8 @@ namespace RatioForge
             data.Add(rm1);
 
             // current = rm1;
-            TabPage page1 = new TabPage("RM " + allit.ToString());
-            page1.Name = "RM" + items.ToString();
+            TabPage page1 = new TabPage("RF " + allit.ToString());
+            page1.Name = "RF" + items.ToString();
             page1.Controls.Add(rm1);
 
             // page1.Enter += new EventHandler(this.TabPage_Enter);
@@ -234,10 +234,10 @@ namespace RatioForge
             int curr = 0;
             foreach (TabPage thetab in tab.TabPages)
             {
-                if (thetab.Text.IndexOf("RM ") > -1)
+                if (thetab.Text.IndexOf("RF ") > -1)
                 {
                     curr++;
-                    thetab.Text = "RM " + curr;
+                    thetab.Text = "RF " + curr;
                 }
             }
         }
@@ -295,11 +295,11 @@ namespace RatioForge
 
         private void LoadSettings()
         {
-            RegistryKey reg = Registry.CurrentUser.OpenSubKey("Software\\RatioMaster.NET", true);
+            RegistryKey reg = Registry.CurrentUser.OpenSubKey("Software\\RatioForge", true);
             if (reg == null)
             {
                 // The key doesn't exist; create it / open it
-                Registry.CurrentUser.CreateSubKey("Software\\RatioMaster.NET");
+                Registry.CurrentUser.CreateSubKey("Software\\RatioForge");
                 return;
             }
 
@@ -316,11 +316,11 @@ namespace RatioForge
         {
             try
             {
-                RegistryKey reg = Registry.CurrentUser.OpenSubKey("Software\\RatioMaster.NET", true);
+                RegistryKey reg = Registry.CurrentUser.OpenSubKey("Software\\RatioForge", true);
                 if (reg == null)
                 {
                     // The key doesn't exist; create it / open it
-                    reg = Registry.CurrentUser.CreateSubKey("Software\\RatioMaster.NET");
+                    reg = Registry.CurrentUser.CreateSubKey("Software\\RatioForge");
                 }
 
                 reg.SetValue("Version", VersionChecker.PublicVersion, RegistryValueKind.String);

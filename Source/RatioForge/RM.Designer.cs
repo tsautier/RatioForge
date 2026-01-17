@@ -52,7 +52,7 @@ namespace RatioForge
             this.manualUpdateButton = new System.Windows.Forms.Button();
             this.StartButton = new System.Windows.Forms.Button();
             this.StopButton = new System.Windows.Forms.Button();
-            this.magneticPanel9 = new RatioMaster_source.MagneticPanel();
+            this.magneticPanel9 = new RatioForge.MagneticPanel();
             this.RandomDownloadTo = new System.Windows.Forms.TextBox();
             this.RandomDownloadFrom = new System.Windows.Forms.TextBox();
             this.checkRandomUpload = new System.Windows.Forms.CheckBox();
@@ -63,12 +63,12 @@ namespace RatioForge
             this.lblRandomDownloadFrom = new System.Windows.Forms.Label();
             this.RandomUploadFrom = new System.Windows.Forms.TextBox();
             this.lblRandomDownloadTo = new System.Windows.Forms.Label();
-            this.magneticPanel8 = new RatioMaster_source.MagneticPanel();
+            this.magneticPanel8 = new RatioForge.MagneticPanel();
             this.logWindow = new System.Windows.Forms.RichTextBox();
             this.checkLogEnabled = new System.Windows.Forms.CheckBox();
             this.clearLogButton = new System.Windows.Forms.Button();
             this.btnSaveLog = new System.Windows.Forms.Button();
-            this.magneticPanel7 = new RatioMaster_source.MagneticPanel();
+            this.magneticPanel7 = new RatioForge.MagneticPanel();
             this.customPeersNum = new System.Windows.Forms.TextBox();
             this.lblcustomPeersNum = new System.Windows.Forms.Label();
             this.lblGenStatus = new System.Windows.Forms.Label();
@@ -79,7 +79,7 @@ namespace RatioForge
             this.customPeerID = new System.Windows.Forms.TextBox();
             this.customKey = new System.Windows.Forms.TextBox();
             this.keyLabel = new System.Windows.Forms.Label();
-            this.magneticPanel6 = new RatioMaster_source.MagneticPanel();
+            this.magneticPanel6 = new RatioForge.MagneticPanel();
             this.lblStopAfter = new System.Windows.Forms.Label();
             this.cmbStopAfter = new System.Windows.Forms.ComboBox();
             this.txtStopValue = new System.Windows.Forms.TextBox();
@@ -91,7 +91,7 @@ namespace RatioForge
             this.cmbClient = new System.Windows.Forms.ComboBox();
             this.interval = new System.Windows.Forms.TextBox();
             this.ClientLabel = new System.Windows.Forms.Label();
-            this.magneticPanel5 = new RatioMaster_source.MagneticPanel();
+            this.magneticPanel5 = new RatioForge.MagneticPanel();
             this.uploadRateLabel = new System.Windows.Forms.Label();
             this.uploadRate = new System.Windows.Forms.TextBox();
             this.txtRandDownMax = new System.Windows.Forms.TextBox();
@@ -106,14 +106,14 @@ namespace RatioForge
             this.lblUpMin = new System.Windows.Forms.Label();
             this.lblDownMin = new System.Windows.Forms.Label();
             this.lblUpMax = new System.Windows.Forms.Label();
-            this.magneticPanel4 = new RatioMaster_source.MagneticPanel();
+            this.magneticPanel4 = new RatioForge.MagneticPanel();
             this.txtTorrentSize = new System.Windows.Forms.TextBox();
             this.trackerAddress = new System.Windows.Forms.TextBox();
             this.lblTorrentSize = new System.Windows.Forms.Label();
             this.TrackerLabel = new System.Windows.Forms.Label();
             this.shaHash = new System.Windows.Forms.TextBox();
             this.hashLabel = new System.Windows.Forms.Label();
-            this.magneticPanel3 = new RatioMaster_source.MagneticPanel();
+            this.magneticPanel3 = new RatioForge.MagneticPanel();
             this.labelProxyType = new System.Windows.Forms.Label();
             this.labelProxyHost = new System.Windows.Forms.Label();
             this.textProxyPass = new System.Windows.Forms.TextBox();
@@ -124,11 +124,11 @@ namespace RatioForge
             this.labelProxyPort = new System.Windows.Forms.Label();
             this.labelProxyPass = new System.Windows.Forms.Label();
             this.textProxyUser = new System.Windows.Forms.TextBox();
-            this.magneticPanel2 = new RatioMaster_source.MagneticPanel();
+            this.magneticPanel2 = new RatioForge.MagneticPanel();
             this.checkIgnoreFailureReason = new System.Windows.Forms.CheckBox();
             this.checkRequestScrap = new System.Windows.Forms.CheckBox();
             this.checkTCPListen = new System.Windows.Forms.CheckBox();
-            this.magneticPanel1 = new RatioMaster_source.MagneticPanel();
+            this.magneticPanel1 = new RatioForge.MagneticPanel();
             this.browseButton = new System.Windows.Forms.Button();
             this.torrentFile = new System.Windows.Forms.TextBox();
             this.info.SuspendLayout();
@@ -335,7 +335,7 @@ namespace RatioForge
             // 
             // magneticPanel9
             // 
-            this.magneticPanel9.BevelStyle = RatioMaster_source.BevelStyles.Flat;
+            this.magneticPanel9.BevelStyle = RatioForge.BevelStyles.Flat;
             this.magneticPanel9.CaptionEndColor = System.Drawing.Color.Red;
             this.magneticPanel9.CaptionStartColor = System.Drawing.Color.Black;
             this.magneticPanel9.Controls.Add(this.RandomDownloadTo);
@@ -350,7 +350,7 @@ namespace RatioForge
             this.magneticPanel9.Controls.Add(this.lblRandomDownloadTo);
             this.magneticPanel9.ExpandSize = new System.Drawing.Size(472, 58);
             this.magneticPanel9.Location = new System.Drawing.Point(482, 125);
-            this.magneticPanel9.Marker = RatioMaster_source.PanelMarkerStyle.Arrow;
+            this.magneticPanel9.Marker = RatioForge.PanelMarkerStyle.Arrow;
             this.magneticPanel9.Name = "magneticPanel9";
             this.magneticPanel9.Size = new System.Drawing.Size(472, 58);
             this.magneticPanel9.TabIndex = 28;
@@ -452,7 +452,7 @@ namespace RatioForge
             // 
             // magneticPanel8
             // 
-            this.magneticPanel8.BevelStyle = RatioMaster_source.BevelStyles.Flat;
+            this.magneticPanel8.BevelStyle = RatioForge.BevelStyles.Flat;
             this.magneticPanel8.CaptionEndColor = System.Drawing.Color.Red;
             this.magneticPanel8.CaptionStartColor = System.Drawing.Color.Black;
             this.magneticPanel8.Controls.Add(this.logWindow);
@@ -461,7 +461,7 @@ namespace RatioForge
             this.magneticPanel8.Controls.Add(this.btnSaveLog);
             this.magneticPanel8.ExpandSize = new System.Drawing.Size(472, 223);
             this.magneticPanel8.Location = new System.Drawing.Point(482, 189);
-            this.magneticPanel8.Marker = RatioMaster_source.PanelMarkerStyle.Arrow;
+            this.magneticPanel8.Marker = RatioForge.PanelMarkerStyle.Arrow;
             this.magneticPanel8.Name = "magneticPanel8";
             this.magneticPanel8.Size = new System.Drawing.Size(472, 223);
             this.magneticPanel8.TabIndex = 27;
@@ -522,7 +522,7 @@ namespace RatioForge
             // 
             // magneticPanel7
             // 
-            this.magneticPanel7.BevelStyle = RatioMaster_source.BevelStyles.Flat;
+            this.magneticPanel7.BevelStyle = RatioForge.BevelStyles.Flat;
             this.magneticPanel7.CaptionEndColor = System.Drawing.Color.Red;
             this.magneticPanel7.CaptionStartColor = System.Drawing.Color.Black;
             this.magneticPanel7.Controls.Add(this.customPeersNum);
@@ -537,7 +537,7 @@ namespace RatioForge
             this.magneticPanel7.Controls.Add(this.keyLabel);
             this.magneticPanel7.ExpandSize = new System.Drawing.Size(473, 89);
             this.magneticPanel7.Location = new System.Drawing.Point(3, 283);
-            this.magneticPanel7.Marker = RatioMaster_source.PanelMarkerStyle.Arrow;
+            this.magneticPanel7.Marker = RatioForge.PanelMarkerStyle.Arrow;
             this.magneticPanel7.Name = "magneticPanel7";
             this.magneticPanel7.Size = new System.Drawing.Size(473, 89);
             this.magneticPanel7.TabIndex = 26;
@@ -636,7 +636,7 @@ namespace RatioForge
             // 
             // magneticPanel6
             // 
-            this.magneticPanel6.BevelStyle = RatioMaster_source.BevelStyles.Flat;
+            this.magneticPanel6.BevelStyle = RatioForge.BevelStyles.Flat;
             this.magneticPanel6.CaptionEndColor = System.Drawing.Color.Red;
             this.magneticPanel6.CaptionStartColor = System.Drawing.Color.Black;
             this.magneticPanel6.Controls.Add(this.lblStopAfter);
@@ -652,7 +652,7 @@ namespace RatioForge
             this.magneticPanel6.Controls.Add(this.ClientLabel);
             this.magneticPanel6.ExpandSize = new System.Drawing.Size(473, 70);
             this.magneticPanel6.Location = new System.Drawing.Point(3, 207);
-            this.magneticPanel6.Marker = RatioMaster_source.PanelMarkerStyle.Arrow;
+            this.magneticPanel6.Marker = RatioForge.PanelMarkerStyle.Arrow;
             this.magneticPanel6.Name = "magneticPanel6";
             this.magneticPanel6.Size = new System.Drawing.Size(473, 70);
             this.magneticPanel6.TabIndex = 25;
@@ -796,7 +796,7 @@ namespace RatioForge
             // 
             // magneticPanel5
             // 
-            this.magneticPanel5.BevelStyle = RatioMaster_source.BevelStyles.Flat;
+            this.magneticPanel5.BevelStyle = RatioForge.BevelStyles.Flat;
             this.magneticPanel5.CaptionEndColor = System.Drawing.Color.Red;
             this.magneticPanel5.CaptionStartColor = System.Drawing.Color.Black;
             this.magneticPanel5.Controls.Add(this.uploadRateLabel);
@@ -815,7 +815,7 @@ namespace RatioForge
             this.magneticPanel5.Controls.Add(this.lblUpMax);
             this.magneticPanel5.ExpandSize = new System.Drawing.Size(473, 70);
             this.magneticPanel5.Location = new System.Drawing.Point(3, 131);
-            this.magneticPanel5.Marker = RatioMaster_source.PanelMarkerStyle.Arrow;
+            this.magneticPanel5.Marker = RatioForge.PanelMarkerStyle.Arrow;
             this.magneticPanel5.Name = "magneticPanel5";
             this.magneticPanel5.Size = new System.Drawing.Size(473, 70);
             this.magneticPanel5.TabIndex = 25;
@@ -959,7 +959,7 @@ namespace RatioForge
             // 
             // magneticPanel4
             // 
-            this.magneticPanel4.BevelStyle = RatioMaster_source.BevelStyles.Flat;
+            this.magneticPanel4.BevelStyle = RatioForge.BevelStyles.Flat;
             this.magneticPanel4.CaptionEndColor = System.Drawing.Color.Red;
             this.magneticPanel4.CaptionStartColor = System.Drawing.Color.Black;
             this.magneticPanel4.Controls.Add(this.txtTorrentSize);
@@ -970,7 +970,7 @@ namespace RatioForge
             this.magneticPanel4.Controls.Add(this.hashLabel);
             this.magneticPanel4.ExpandSize = new System.Drawing.Size(473, 70);
             this.magneticPanel4.Location = new System.Drawing.Point(3, 55);
-            this.magneticPanel4.Marker = RatioMaster_source.PanelMarkerStyle.Arrow;
+            this.magneticPanel4.Marker = RatioForge.PanelMarkerStyle.Arrow;
             this.magneticPanel4.Name = "magneticPanel4";
             this.magneticPanel4.Size = new System.Drawing.Size(473, 70);
             this.magneticPanel4.TabIndex = 25;
@@ -1029,7 +1029,7 @@ namespace RatioForge
             // 
             // magneticPanel3
             // 
-            this.magneticPanel3.BevelStyle = RatioMaster_source.BevelStyles.Flat;
+            this.magneticPanel3.BevelStyle = RatioForge.BevelStyles.Flat;
             this.magneticPanel3.CaptionEndColor = System.Drawing.Color.Red;
             this.magneticPanel3.CaptionStartColor = System.Drawing.Color.Black;
             this.magneticPanel3.Controls.Add(this.labelProxyType);
@@ -1044,7 +1044,7 @@ namespace RatioForge
             this.magneticPanel3.Controls.Add(this.textProxyUser);
             this.magneticPanel3.ExpandSize = new System.Drawing.Size(472, 70);
             this.magneticPanel3.Location = new System.Drawing.Point(482, 49);
-            this.magneticPanel3.Marker = RatioMaster_source.PanelMarkerStyle.Arrow;
+            this.magneticPanel3.Marker = RatioForge.PanelMarkerStyle.Arrow;
             this.magneticPanel3.Name = "magneticPanel3";
             this.magneticPanel3.Size = new System.Drawing.Size(472, 70);
             this.magneticPanel3.TabIndex = 6;
@@ -1146,7 +1146,7 @@ namespace RatioForge
             // 
             // magneticPanel2
             // 
-            this.magneticPanel2.BevelStyle = RatioMaster_source.BevelStyles.Flat;
+            this.magneticPanel2.BevelStyle = RatioForge.BevelStyles.Flat;
             this.magneticPanel2.CaptionEndColor = System.Drawing.Color.Red;
             this.magneticPanel2.CaptionStartColor = System.Drawing.Color.Black;
             this.magneticPanel2.Controls.Add(this.checkIgnoreFailureReason);
@@ -1154,7 +1154,7 @@ namespace RatioForge
             this.magneticPanel2.Controls.Add(this.checkTCPListen);
             this.magneticPanel2.ExpandSize = new System.Drawing.Size(472, 40);
             this.magneticPanel2.Location = new System.Drawing.Point(482, 3);
-            this.magneticPanel2.Marker = RatioMaster_source.PanelMarkerStyle.Arrow;
+            this.magneticPanel2.Marker = RatioForge.PanelMarkerStyle.Arrow;
             this.magneticPanel2.Name = "magneticPanel2";
             this.magneticPanel2.Size = new System.Drawing.Size(472, 40);
             this.magneticPanel2.TabIndex = 6;
@@ -1199,14 +1199,14 @@ namespace RatioForge
             // 
             // magneticPanel1
             // 
-            this.magneticPanel1.BevelStyle = RatioMaster_source.BevelStyles.Flat;
+            this.magneticPanel1.BevelStyle = RatioForge.BevelStyles.Flat;
             this.magneticPanel1.CaptionEndColor = System.Drawing.Color.Red;
             this.magneticPanel1.CaptionStartColor = System.Drawing.Color.Black;
             this.magneticPanel1.Controls.Add(this.browseButton);
             this.magneticPanel1.Controls.Add(this.torrentFile);
             this.magneticPanel1.ExpandSize = new System.Drawing.Size(473, 46);
             this.magneticPanel1.Location = new System.Drawing.Point(3, 3);
-            this.magneticPanel1.Marker = RatioMaster_source.PanelMarkerStyle.Arrow;
+            this.magneticPanel1.Marker = RatioForge.PanelMarkerStyle.Arrow;
             this.magneticPanel1.Name = "magneticPanel1";
             this.magneticPanel1.Size = new System.Drawing.Size(473, 46);
             this.magneticPanel1.TabIndex = 6;

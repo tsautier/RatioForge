@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("RatioForge")]
 [assembly: AssemblyDescription("The most powerful torrent client simulator - Modernized for .NET 8")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("tsautier")]
+[assembly: AssemblyCompany("Thomas SAUTIER")]
 [assembly: AssemblyProduct("RatioForge")]
-[assembly: AssemblyCopyright("Copyright © 2006-2016 Nikolay Kostov, 2026-present tsautier")]
+[assembly: AssemblyCopyright("Copyright © 2006-2016 Nikolay Kostov, 2026-present Thomas SAUTIER")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -29,6 +29,6 @@ using System.Runtime.InteropServices;
 //      Build Number
 //      Revision
 //
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.1.0")]
+[assembly: AssemblyFileVersion("1.0.1.0")]
 [assembly: NeutralResourcesLanguageAttribute("en")]

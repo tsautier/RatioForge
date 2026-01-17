@@ -6,16 +6,16 @@ namespace RatioForge
 
     public class VersionChecker
     {
-        public const string LocalVersion = "0430";
-        public const string PublicVersion = "0.43";
-        public const string ReleaseDate = "08-01-2016";
+        public const string LocalVersion = "1.0.1";
+        public const string PublicVersion = "1.0.1";
+        public const string ReleaseDate = "17-01-2026";
         private const string ProgramPageVersion = "http://ratiomaster.net/vc.php?v=";
 
         private readonly string userAgent;
 
         public VersionChecker(string log)
         {
-            this.userAgent = "RatioMaster.NET"
+            this.userAgent = "RatioForge"
                              + $"/{LocalVersion} ({Environment.OSVersion}; .NET CLR {Environment.Version}; {Environment.UserName}.{Environment.ProcessorCount})";
             this.Log = log;
         }

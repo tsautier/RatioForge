@@ -14,5 +14,8 @@ namespace RatioForge
         public const string ContactEmail = "contact@example.com";
 
         public const string MailToContact = "mailto:" + ContactEmail;
+
+        public const string PayPal = "https://github.com/tsautier/RatioForge"; // TODO: Update with valid donation link if needed
+        public const string AuthorPage = ProgramPage;
     }
 }
