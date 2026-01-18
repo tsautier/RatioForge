@@ -69,13 +69,6 @@ dotnet test Source/RatioForge.sln
 
 For detailed usage instructions, see the built-in help menu.
 
-## What's New in 1.0.1 (RatioForge)
-
-- **UI Rebranding**: Complete visual transition to "RatioForge"
-- **Updated Credits**: Proper attribution to original authord and new maintainer
-- **Bug Fixes**: Resolved namespace conflicts and UI glitches
-- **Improved Stability**: Fixed minor issues from 1.0.0 release
-
 ## What's New in 1.0.0 (RatioForge)
 
 - **Complete Rename**: RatioMaster.NET → RatioForge
