@@ -70,7 +70,7 @@ namespace RatioForge
                     using (var reader1 = new StreamReader(response1.GetResponseStream()))
                     {
                         var data = reader1.ReadToEnd();
-                        return data;
+                        return data.Trim();
                     }
                 }
             }
