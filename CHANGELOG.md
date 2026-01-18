@@ -5,6 +5,11 @@ All notable changes to RatioForge will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-01-18
+
+### Fixed
+- **Critical Runtime Error**: Fixed `System.NotSupportedException: No data is available for encoding 1252` by registering `CodePagesEncodingProvider`. This is required for .NET 8 to support legacy encodings widely used in torrent files.
+
 ## [1.0.2] - 2026-01-18
 
 ### Fixed

@@ -50,7 +50,7 @@ namespace RatioForge
             this.lblProgramName.Name = "lblProgramName";
             this.lblProgramName.Size = new System.Drawing.Size(327, 44);
             this.lblProgramName.TabIndex = 0;
-            this.lblProgramName.Text = "RatioMaster.NET";
+            this.lblProgramName.Text = "RatioForge";
             // 
             // groupBox1
             // 
@@ -64,7 +64,7 @@ namespace RatioForge
             this.groupBox1.Controls.Add(this.lblInfoAuthorWebSite);
             this.groupBox1.Location = new System.Drawing.Point(12, 98);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(443, 65);
+            this.groupBox1.Size = new System.Drawing.Size(460, 65); // Slightly larger
             this.groupBox1.TabIndex = 2;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Communication";
@@ -79,7 +79,7 @@ namespace RatioForge
             this.linkGitHub.Size = new System.Drawing.Size(104, 13);
             this.linkGitHub.TabIndex = 5;
             this.linkGitHub.TabStop = true;
-            this.linkGitHub.Text = "RatioMaster.NET";
+            this.linkGitHub.Text = "RatioForge";
             this.linkGitHub.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkGitHubPage_LinkClicked);
             // 
             // lblGitHubAdress
@@ -101,7 +101,7 @@ namespace RatioForge
             this.linkWebSite.Size = new System.Drawing.Size(107, 13);
             this.linkWebSite.TabIndex = 1;
             this.linkWebSite.TabStop = true;
-            this.linkWebSite.Text = "http://ratiomaster.net";
+            this.linkWebSite.Text = "https://github.com/tsautier/RatioForge";
             this.linkWebSite.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkWebSite_LinkClicked);
             // 
             // lblWebSite
@@ -123,7 +123,7 @@ namespace RatioForge
             this.linkEMail.Size = new System.Drawing.Size(110, 13);
             this.linkEMail.TabIndex = 7;
             this.linkEMail.TabStop = true;
-            this.linkEMail.Text = "ratiomaster@nikolay.it";
+            this.linkEMail.Text = "tsautier@github";
             this.linkEMail.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkEMail_LinkClicked);
             // 
             // linkAuthorWebSite
@@ -145,7 +145,7 @@ namespace RatioForge
             this.lblInfoEMail.Name = "lblInfoEMail";
             this.lblInfoEMail.Size = new System.Drawing.Size(38, 13);
             this.lblInfoEMail.TabIndex = 6;
-            this.lblInfoEMail.Text = "E-mail:";
+            this.lblInfoEMail.Text = "Contact:";
             // 
             // lblInfoAuthorWebSite
             // 
@@ -154,7 +154,7 @@ namespace RatioForge
             this.lblInfoAuthorWebSite.Name = "lblInfoAuthorWebSite";
             this.lblInfoAuthorWebSite.Size = new System.Drawing.Size(41, 13);
             this.lblInfoAuthorWebSite.TabIndex = 2;
-            this.lblInfoAuthorWebSite.Text = "Author:";
+            this.lblInfoAuthorWebSite.Text = "Original:";
             // 
             // button1
             // 
@@ -163,7 +163,7 @@ namespace RatioForge
             this.button1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.button1.Location = new System.Drawing.Point(12, 169);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(443, 27);
+            this.button1.Size = new System.Drawing.Size(460, 27);
             this.button1.TabIndex = 5;
             this.button1.Text = "OK";
             this.button1.UseVisualStyleBackColor = true;
@@ -173,7 +173,7 @@ namespace RatioForge
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(467, 209);
+            this.ClientSize = new System.Drawing.Size(484, 209);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.lblProgramName);
@@ -181,7 +181,7 @@ namespace RatioForge
             this.Name = "AboutForm";
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "About RatioMaster.NET";
+            this.Text = "About RatioForge";
             this.Load += new System.EventHandler(this.AboutForm_Load);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();

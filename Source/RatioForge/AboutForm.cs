@@ -26,22 +26,22 @@ namespace RatioForge
 
         private void linkGitHubPage_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            Process.Start(Links.GitHubPage);
+            Links.OpenUrl(Links.GitHubPage);
         }
 
         private void linkAuthorWebSite_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            Process.Start(Links.OriginalAuthorPage);
+            Links.OpenUrl(Links.OriginalAuthorPage);
         }
 
         private void linkEMail_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            Process.Start(Links.MailToContact);
+            Links.OpenUrl(Links.MailToContact);
         }
 
         private void linkWebSite_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            Process.Start(Links.ProgramPage);
+            Links.OpenUrl(Links.ProgramPage);
         }
     }
 }

@@ -270,27 +270,27 @@ namespace RatioForge
 
         private void goToProgramPageToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Process.Start(Links.ProgramPage);
+            Links.OpenUrl(Links.ProgramPage);
         }
 
         private void goToGitHubPageToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Process.Start(Links.GitHubPage);
+            Links.OpenUrl(Links.GitHubPage);
         }
 
         private void goToAuthorPageToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Process.Start(Links.AuthorPage);
+            Links.OpenUrl(Links.AuthorPage);
         }
 
         private void jOINToOurForumPleaseToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Process.Start(Links.PayPal);
+            Links.OpenUrl(Links.PayPal);
         }
 
         private void lblCodedBy_Click(object sender, EventArgs e)
         {
-            Process.Start(Links.AuthorPage);
+            Links.OpenUrl(Links.AuthorPage);
         }
 
         private void LoadSettings()

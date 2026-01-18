@@ -15,7 +15,7 @@ namespace RatioForge
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            Process.Start(Links.ProgramPage);
+            Links.OpenUrl(Links.ProgramPage);
         }
 
         private void btnOK_Click(object sender, EventArgs e)
@@ -25,7 +25,7 @@ namespace RatioForge
 
         private void linkLabel1_LinkClicked_1(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            Process.Start(Links.GitHubPage);
+            Links.OpenUrl(Links.GitHubPage);
         }
     }
 }

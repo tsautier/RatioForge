@@ -11,6 +11,8 @@ namespace RatioForge
         [STAThread]
         internal static void Main()
         {
+            // Fix for Encoding 1252 (System.NotSupportedException) in .NET Core/5+
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             Application.EnableVisualStyles();
             //// Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm());
