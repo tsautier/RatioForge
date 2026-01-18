@@ -1148,9 +1148,9 @@ namespace RatioForge
                                 decimal leechers = BEncode.String(dictionary2["incomplete"]).ParseValidInt(-1);
                                 if (Leechers != -1  && (leechers == 0))
                                 {
-                                    AddLogLine("Min number of leechers reached... setting upload speed to 0");
-                                    updateTextBox(uploadRate, "0");
-                                    chkRandUP.Checked = false;
+                                    // AddLogLine("Min number of leechers reached... setting upload speed to 0");
+                                    // updateTextBox(uploadRate, "0");
+                                    // chkRandUP.Checked = false;
                                 }
                             }
                             else
