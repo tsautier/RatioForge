@@ -15,7 +15,7 @@ namespace RatioForge.Tests
             var versionChecker = new VersionChecker(string.Empty);
             var serverVersion = versionChecker.GetServerVersionId();
             Console.WriteLine(serverVersion);
-            Assert.That(serverVersion.Length, Is.EqualTo(4));
+            Assert.That(serverVersion.Length, Is.EqualTo(5));
         }
     }
 }
