@@ -1,0 +1,29 @@
+name: Build RatioForge
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+        
+    - name: Restore dependencies
+      run: dotnet restore Source/RatioForge.sln
+      
+    - name: Build
+      run: dotnet build Source/RatioForge.sln --no-restore --configuration Release
+      
+    - name: Test
+      run: dotnet test Source/RatioForge.sln --no-build --configuration Release --verbosity normal
