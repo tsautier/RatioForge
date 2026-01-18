@@ -412,6 +412,7 @@ namespace RatioForge
 
                 case "uTorrent":
                     {
+                        cmbVersion.Items.Add("3.6.0 (build 46590)");
                         cmbVersion.Items.Add("3.3.2");
                         cmbVersion.Items.Add("3.3.0");
                         cmbVersion.Items.Add("3.2.0");
@@ -525,6 +526,15 @@ namespace RatioForge
                     {
                         cmbVersion.Items.Add("0.0.28-1");
                         cmbVersion.SelectedItem = "0.0.28-1";
+                        if (customPeersNum.Text == "0" || customPeersNum.Text == "") customPeersNum.Text = "200";
+
+                        break;
+                    }
+
+                case "qBittorrent":
+                    {
+                        cmbVersion.Items.Add("5.1.2");
+                        cmbVersion.SelectedItem = "5.1.2";
                         if (customPeersNum.Text == "0" || customPeersNum.Text == "") customPeersNum.Text = "200";
                         break;
                     }
