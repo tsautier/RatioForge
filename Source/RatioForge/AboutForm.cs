@@ -34,10 +34,7 @@ namespace RatioForge
             Links.OpenUrl(Links.OriginalAuthorPage);
         }
 
-        private void linkEMail_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            Links.OpenUrl(Links.MailToContact);
-        }
+
 
         private void linkWebSite_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {

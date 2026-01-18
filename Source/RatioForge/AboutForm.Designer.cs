@@ -58,9 +58,9 @@ namespace RatioForge
             this.groupBox1.Controls.Add(this.lblGitHubAdress);
             this.groupBox1.Controls.Add(this.linkWebSite);
             this.groupBox1.Controls.Add(this.lblWebSite);
-            this.groupBox1.Controls.Add(this.linkEMail);
+
             this.groupBox1.Controls.Add(this.linkAuthorWebSite);
-            this.groupBox1.Controls.Add(this.lblInfoEMail);
+
             this.groupBox1.Controls.Add(this.lblInfoAuthorWebSite);
             this.groupBox1.Location = new System.Drawing.Point(12, 98);
             this.groupBox1.Name = "groupBox1";
@@ -113,18 +113,7 @@ namespace RatioForge
             this.lblWebSite.TabIndex = 0;
             this.lblWebSite.Text = "Web:";
             // 
-            // linkEMail
-            // 
-            this.linkEMail.AutoSize = true;
-            this.linkEMail.Cursor = System.Windows.Forms.Cursors.Help;
-            this.linkEMail.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.linkEMail.Location = new System.Drawing.Point(50, 44);
-            this.linkEMail.Name = "linkEMail";
-            this.linkEMail.Size = new System.Drawing.Size(110, 13);
-            this.linkEMail.TabIndex = 7;
-            this.linkEMail.TabStop = true;
-            this.linkEMail.Text = "tsautier@github";
-            this.linkEMail.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkEMail_LinkClicked);
+
             // 
             // linkAuthorWebSite
             // 
@@ -138,14 +127,7 @@ namespace RatioForge
             this.linkAuthorWebSite.Text = "http://nikolay.it";
             this.linkAuthorWebSite.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkAuthorWebSite_LinkClicked);
             // 
-            // lblInfoEMail
-            // 
-            this.lblInfoEMail.AutoSize = true;
-            this.lblInfoEMail.Location = new System.Drawing.Point(6, 44);
-            this.lblInfoEMail.Name = "lblInfoEMail";
-            this.lblInfoEMail.Size = new System.Drawing.Size(38, 13);
-            this.lblInfoEMail.TabIndex = 6;
-            this.lblInfoEMail.Text = "Contact:";
+
             // 
             // lblInfoAuthorWebSite
             // 

@@ -109,3 +109,4 @@ UpgradeLog*.XML
 
 # Exclude PHP file containing database passwords
 vc.php
+*.zip
