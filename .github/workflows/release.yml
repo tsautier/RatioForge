@@ -53,7 +53,7 @@ jobs:
             runtime: win-x64
           - os: ubuntu-24.04
             runtime: linux-x64
-          - os: macos-15
+          - os: macos-15-intel
             runtime: osx-x64
           - os: macos-15
             runtime: osx-arm64
