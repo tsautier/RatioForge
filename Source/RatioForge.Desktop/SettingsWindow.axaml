@@ -1,0 +1,115 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="RatioForge.Desktop.SettingsWindow"
+        Title="RatioForge Settings"
+        Width="640" Height="690"
+        MinWidth="560" MinHeight="580"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+  <Grid RowDefinitions="*,Auto">
+    <TabControl Margin="18">
+      <TabItem Header="General">
+        <ScrollViewer>
+          <StackPanel Margin="8,18" Spacing="12">
+            <TextBlock Classes="section-title" Text="Session defaults" />
+            <TextBlock Classes="label" Text="Emulated client" />
+            <ComboBox x:Name="ProfileCombo" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+              <StackPanel>
+                <TextBlock Classes="label" Text="Upload KiB/s" />
+                <NumericUpDown x:Name="UploadRateBox" Minimum="0" Maximum="1048576" />
+              </StackPanel>
+              <StackPanel Grid.Column="1">
+                <TextBlock Classes="label" Text="Download KiB/s" />
+                <NumericUpDown x:Name="DownloadRateBox" Minimum="0" Maximum="1048576" />
+              </StackPanel>
+            </Grid>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+              <StackPanel>
+                <TextBlock Classes="label" Text="Announce interval seconds" />
+                <NumericUpDown x:Name="IntervalBox" Minimum="30" Maximum="86400" Increment="30" />
+              </StackPanel>
+              <StackPanel Grid.Column="1">
+                <TextBlock Classes="label" Text="Peers requested" />
+                <NumericUpDown x:Name="PeerCountBox" Minimum="0" Maximum="500" />
+              </StackPanel>
+            </Grid>
+            <CheckBox x:Name="ActivityLogCheck" Content="Enable activity log" />
+            <CheckBox x:Name="DebugLogCheck" Content="Enable persistent debug logging" />
+            <TextBlock Classes="label" Text="Debug log file" />
+            <TextBox x:Name="DebugLogPathBox" IsReadOnly="True" />
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Network">
+        <ScrollViewer>
+          <StackPanel Margin="8,18" Spacing="12">
+            <TextBlock Classes="section-title" Text="Listener and source address" />
+            <TextBlock Classes="label" Text="Local IPv4 / IPv6 address" />
+            <ComboBox x:Name="AddressCombo" />
+            <TextBlock Classes="label" Text="Listening port" />
+            <NumericUpDown x:Name="PortBox" Minimum="1" Maximum="65535" />
+            <Separator Margin="0,8" />
+            <TextBlock Classes="section-title" Text="Tracker proxy" />
+            <TextBlock Classes="label" Text="Proxy mode" />
+            <ComboBox x:Name="ProxyModeCombo" SelectionChanged="ProxyModeCombo_SelectionChanged" />
+            <Grid ColumnDefinitions="*,140" ColumnSpacing="12">
+              <StackPanel>
+                <TextBlock Classes="label" Text="Host" />
+                <TextBox x:Name="ProxyHostBox" />
+              </StackPanel>
+              <StackPanel Grid.Column="1">
+                <TextBlock Classes="label" Text="Port" />
+                <NumericUpDown x:Name="ProxyPortBox" Minimum="1" Maximum="65535" />
+              </StackPanel>
+            </Grid>
+            <TextBlock Classes="label" Text="Username" />
+            <TextBox x:Name="ProxyUsernameBox" />
+            <TextBlock Classes="label" Text="Password (session only)" />
+            <TextBox x:Name="ProxyPasswordBox" PasswordChar="*" />
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Randomization">
+        <ScrollViewer>
+          <StackPanel Margin="8,18" Spacing="12">
+            <TextBlock Classes="section-title" Text="Upload rate" />
+            <CheckBox x:Name="RandomUploadCheck" Content="Randomize when a session starts" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+              <StackPanel>
+                <TextBlock Classes="label" Text="Minimum KiB/s" />
+                <NumericUpDown x:Name="MinimumUploadBox" Minimum="0" Maximum="1048576" />
+              </StackPanel>
+              <StackPanel Grid.Column="1">
+                <TextBlock Classes="label" Text="Maximum KiB/s" />
+                <NumericUpDown x:Name="MaximumUploadBox" Minimum="0" Maximum="1048576" />
+              </StackPanel>
+            </Grid>
+            <Separator Margin="0,8" />
+            <TextBlock Classes="section-title" Text="Download rate" />
+            <CheckBox x:Name="RandomDownloadCheck" Content="Randomize when a session starts" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+              <StackPanel>
+                <TextBlock Classes="label" Text="Minimum KiB/s" />
+                <NumericUpDown x:Name="MinimumDownloadBox" Minimum="0" Maximum="1048576" />
+              </StackPanel>
+              <StackPanel Grid.Column="1">
+                <TextBlock Classes="label" Text="Maximum KiB/s" />
+                <NumericUpDown x:Name="MaximumDownloadBox" Minimum="0" Maximum="1048576" />
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
+
+    <Border Grid.Row="1" BorderBrush="#2C343D" BorderThickness="0,1,0,0" Padding="18,12">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button Content="Cancel" Click="Cancel_Click" Padding="16,8" />
+        <Button Classes="primary" Content="Save settings" Click="Save_Click" Padding="16,8" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="keywords" content="RatioForge torrent client simulator Windows .NET">
-<meta name="description" content="RatioForge is a Windows torrent client simulator modernized for .NET 8.">
+<meta name="description" content="RatioForge is a Windows torrent client simulator modernized for .NET 10.">
 <meta name="Author" content="Thomas Sautier">
 <meta name="robots" content="index, follow">
 <meta name="distribution" content="global"> 

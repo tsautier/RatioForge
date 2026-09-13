@@ -10,18 +10,17 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: windows-2025
-
+  validate:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v5
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 8.0.x
-
-      - name: Read and validate version
+          dotnet-version: 10.0.x
+      - name: Validate version
         id: version
         shell: pwsh
         run: |
@@ -29,176 +28,118 @@ jobs:
           if ($version -notmatch '^\d+\.\d+\.\d+$') {
             throw "version.txt must contain a SemVer core version. Current value: '$version'"
           }
-
           if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") {
             throw "Git tag '$env:GITHUB_REF_NAME' does not match version.txt value 'v$version'."
           }
-
           "version=$version" >> $env:GITHUB_OUTPUT
-
-      - name: Restore dependencies
+      - name: Restore
         run: dotnet restore Source/RatioForge.sln
-
       - name: Audit NuGet dependencies
         shell: pwsh
         run: ./build/Test-NuGetSecurity.ps1
-
       - name: Build
         run: dotnet build Source/RatioForge.sln --no-restore --configuration Release
-
       - name: Test
         run: dotnet test Source/RatioForge.sln --no-build --configuration Release --verbosity normal
 
-      - name: Publish self-contained win-x64
-        run: dotnet publish Source/RatioForge/RatioForge.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false --output artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64
-
-      - name: Publish Lite win-x64
-        run: dotnet publish Source/RatioForge/RatioForge.csproj --configuration Release --runtime win-x64 --self-contained false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false --output artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64-lite
-
-      - name: Smoke check Windows release build
+  package:
+    needs: validate
+    name: Package ${{ matrix.runtime }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2025
+            runtime: win-x64
+          - os: ubuntu-24.04
+            runtime: linux-x64
+          - os: macos-15
+            runtime: osx-x64
+          - os: macos-15
+            runtime: osx-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Publish and smoke check
         shell: pwsh
-        run: |
-          $version = "${{ steps.version.outputs.version }}"
-          $executables = @(
-            @{
-              Source = "artifacts/RatioForge-$version-win-x64/RatioForge.exe"
-              Destination = "artifacts/RatioForge-$version-win-x64.exe"
-              MaximumBytes = 100MB
-            },
-            @{
-              Source = "artifacts/RatioForge-$version-win-x64-lite/RatioForge.exe"
-              Destination = "artifacts/RatioForge-$version-win-x64-lite.exe"
-              MaximumBytes = 10MB
-            }
-          )
-
-          foreach ($item in $executables) {
-            if (!(Test-Path $item.Source)) {
-              throw "Missing GUI executable: $($item.Source)"
-            }
-
-            $file = Get-Item $item.Source
-            if ($file.VersionInfo.FileVersion -ne "$version.0") {
-              throw "Expected file version '$version.0', got '$($file.VersionInfo.FileVersion)' for $($item.Source)"
-            }
-
-            if ($file.Length -gt $item.MaximumBytes) {
-              throw "$($item.Source) is $($file.Length) bytes; expected at most $($item.MaximumBytes)."
-            }
-
-            $process = Start-Process -FilePath $file.FullName -PassThru
-            try {
-              Start-Sleep -Seconds 5
-              if ($process.HasExited) {
-                throw "$($item.Source) exited during the startup smoke check with code $($process.ExitCode)."
-              }
-            }
-            finally {
-              if (!$process.HasExited) {
-                Stop-Process -Id $process.Id -Force
-              }
-            }
-
-            Copy-Item -LiteralPath $file.FullName -Destination $item.Destination -Force
-          }
-
-      - name: Package release artifact
-        shell: pwsh
-        run: |
-          Compress-Archive `
-            -Path "artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64/*" `
-            -DestinationPath "artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64.zip" `
-            -Force
-
-      - name: Generate SHA256 checksums
-        shell: pwsh
-        run: |
-          $version = "${{ steps.version.outputs.version }}"
-          $files = @(
-            "artifacts/RatioForge-$version-win-x64.zip",
-            "artifacts/RatioForge-$version-win-x64.exe",
-            "artifacts/RatioForge-$version-win-x64-lite.exe"
-          )
-
-          $checksums = foreach ($file in $files) {
-            $hash = Get-FileHash -Algorithm SHA256 -Path $file
-            "$($hash.Hash.ToLowerInvariant())  $([System.IO.Path]::GetFileName($file))"
-          }
-
-          $checksums | Set-Content -Encoding ascii "artifacts/RatioForge-$version-win-x64.sha256"
-
-      - name: Upload release artifact
+        run: ./build/Publish-Desktop.ps1 -Runtime ${{ matrix.runtime }}
+      - name: Upload release candidate
         uses: actions/upload-artifact@v7
         with:
-          name: RatioForge-${{ steps.version.outputs.version }}-win-x64
+          name: RatioForge-${{ needs.validate.outputs.version }}-${{ matrix.runtime }}
           path: |
-            artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64.zip
-            artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64.exe
-            artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64-lite.exe
-            artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64.sha256
+            artifacts/*.zip
+            artifacts/*.tar.gz
+            artifacts/*.exe
+            artifacts/RatioForge-*-linux-x64
+            artifacts/RatioForge-*-linux-x64-lite
+            artifacts/RatioForge-*-osx-x64
+            artifacts/RatioForge-*-osx-x64-lite
+            artifacts/RatioForge-*-osx-arm64
+            artifacts/RatioForge-*-osx-arm64-lite
+            artifacts/*.sha256
           if-no-files-found: error
           retention-days: 30
 
+  release:
+    if: github.ref_type == 'tag'
+    needs: [validate, package]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Download release candidates
+        uses: actions/download-artifact@v8
+        with:
+          pattern: RatioForge-${{ needs.validate.outputs.version }}-*
+          path: artifacts
+          merge-multiple: true
       - name: Create GitHub release
-        if: github.ref_type == 'tag'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$env:GITHUB_REF_NAME" `
-            "artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64.zip" `
-            "artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64.exe" `
-            "artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64-lite.exe" `
-            "artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64.sha256" `
-            --title "RatioForge ${{ steps.version.outputs.version }}" `
-            --notes "See CHANGELOG.md for the release notes." `
+          $assets = @(Get-ChildItem artifacts -File | ForEach-Object { $_.FullName })
+          if ($assets.Count -ne 16) {
+            throw "Expected 16 release assets, found $($assets.Count)."
+          }
+          gh release create "$env:GITHUB_REF_NAME" @assets `
+            --title "RatioForge ${{ needs.validate.outputs.version }}" `
+            --notes-file RELEASE_NOTES.md `
             --verify-tag
-
-      - name: Verify GitHub release assets
-        if: github.ref_type == 'tag'
+      - name: Verify uploaded assets and checksums
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $version = "${{ steps.version.outputs.version }}"
-          $expectedAssets = @(
-            "RatioForge-$version-win-x64.zip",
-            "RatioForge-$version-win-x64.exe",
-            "RatioForge-$version-win-x64-lite.exe",
-            "RatioForge-$version-win-x64.sha256"
-          )
-
+          $version = "${{ needs.validate.outputs.version }}"
+          $runtimes = @("win-x64", "linux-x64", "osx-x64", "osx-arm64")
+          $expected = foreach ($runtime in $runtimes) {
+            $extension = if ($runtime -eq "win-x64") { ".exe" } else { "" }
+            $archive = if ($runtime -eq "win-x64") { ".zip" } else { ".tar.gz" }
+            "RatioForge-$version-$runtime$archive"
+            "RatioForge-$version-$runtime$extension"
+            "RatioForge-$version-$runtime-lite$extension"
+            "RatioForge-$version-$runtime.sha256"
+          }
           $release = gh release view "$env:GITHUB_REF_NAME" --json assets | ConvertFrom-Json
-          foreach ($assetName in $expectedAssets) {
-            $asset = $release.assets | Where-Object { $_.name -eq $assetName }
-            if ($null -eq $asset) {
-              throw "Missing release asset: $assetName"
-            }
-
-            if ($asset.size -le 0) {
-              throw "Release asset is empty: $assetName"
+          foreach ($name in $expected) {
+            $asset = $release.assets | Where-Object name -eq $name
+            if ($null -eq $asset -or $asset.size -le 0) {
+              throw "Missing or empty release asset: $name"
             }
           }
-
-          New-Item -ItemType Directory -Path "release-verification" -Force | Out-Null
-          foreach ($assetName in $expectedAssets) {
-            gh release download "$env:GITHUB_REF_NAME" --pattern $assetName --dir "release-verification" --clobber
-          }
-
-          $checksumPath = "release-verification/RatioForge-$version-win-x64.sha256"
-          foreach ($line in Get-Content $checksumPath) {
-            if ($line -notmatch '^([0-9a-f]{64})  (.+)$') {
-              throw "Invalid checksum entry: $line"
-            }
-
-            $expectedHash = $Matches[1]
-            $assetPath = Join-Path "release-verification" $Matches[2]
-            if (!(Test-Path $assetPath)) {
-              throw "Checksum references a missing release asset: $assetPath"
-            }
-
-            $actualHash = (Get-FileHash -Algorithm SHA256 -Path $assetPath).Hash.ToLowerInvariant()
-            if ($actualHash -ne $expectedHash) {
-              throw "SHA256 mismatch for $assetPath. Expected $expectedHash, got $actualHash."
+          New-Item -ItemType Directory -Path verification | Out-Null
+          gh release download "$env:GITHUB_REF_NAME" --dir verification
+          foreach ($checksum in Get-ChildItem verification -Filter *.sha256) {
+            foreach ($line in Get-Content $checksum.FullName) {
+              if ($line -notmatch '^([0-9a-f]{64})  (.+)$') { throw "Invalid checksum entry: $line" }
+              $assetPath = Join-Path verification $Matches[2]
+              if (!(Test-Path -LiteralPath $assetPath)) { throw "Checksum references missing asset: $assetPath" }
+              $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $assetPath).Hash.ToLowerInvariant()
+              if ($actual -ne $Matches[1]) { throw "SHA256 mismatch for $assetPath" }
             }
           }

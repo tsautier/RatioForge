@@ -153,7 +153,7 @@ namespace RatioForge
             }
         }
 
-        [Description("Style of panel's bevel"), Category("Appearance")]
+        [DefaultValue(BevelStyles.Flat), Description("Style of panel's bevel"), Category("Appearance")]
         public BevelStyles BevelStyle
         {
             get
@@ -172,7 +172,7 @@ namespace RatioForge
             }
         }
 
-        [Category("Layout"), Description("Control size in the expanded state")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible), Category("Layout"), Description("Control size in the expanded state")]
         public Size ExpandSize
         {
             get

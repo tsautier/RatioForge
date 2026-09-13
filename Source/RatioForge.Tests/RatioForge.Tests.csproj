@@ -1,13 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>RatioForge.Tests</RootNamespace>
     <AssemblyName>RatioForge.Tests</AssemblyName>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <LangVersion>12.0</LangVersion>
-    <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
+    <LangVersion>14.0</LangVersion>
     <ProjectGuid>{B3828DC2-9D25-4B89-A9A5-316DCC5BAB3E}</ProjectGuid>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
@@ -16,7 +15,6 @@
     <Company>Thomas SAUTIER</Company>
     <Product>RatioForge.Tests</Product>
     <Copyright>Copyright © 2026-present Thomas SAUTIER</Copyright>
-    <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -38,7 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RatioForge\RatioForge.csproj" />
+    <ProjectReference Include="..\RatioForge.Core\RatioForge.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

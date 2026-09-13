@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>RatioForge.Desktop</RootNamespace>
+    <AssemblyName>RatioForge</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>14.0</LangVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\RatioForge\Resources\Main.ico</ApplicationIcon>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RatioForge.Core\RatioForge.Core.csproj" />
+  </ItemGroup>
+</Project>

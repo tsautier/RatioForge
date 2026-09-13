@@ -1,6 +1,7 @@
 namespace RatioForge
 {
     using System;
+    using System.Net;
     using System.Text;
 
     /// <summary>
@@ -46,7 +47,7 @@ namespace RatioForge
                 .Replace("{event}", eventType, StringComparison.Ordinal)
                 .Replace("{numwant}", numberOfPeers, StringComparison.Ordinal)
                 .Replace("{key}", torrentInfo.key, StringComparison.Ordinal)
-                .Replace("{localip}", localIp, StringComparison.Ordinal);
+                .Replace("{localip}", EncodeIpAddress(localIp), StringComparison.Ordinal);
         }
 
         internal static string BuildScrape(TorrentInfo torrentInfo, TorrentClient client)
@@ -90,6 +91,21 @@ namespace RatioForge
             }
 
             return encoded.ToString();
+        }
+
+        internal static string EncodeIpAddress(string address)
+        {
+            if (string.IsNullOrWhiteSpace(address))
+            {
+                return string.Empty;
+            }
+
+            if (!IPAddress.TryParse(address, out IPAddress parsed))
+            {
+                throw new FormatException("The local address must be a valid IPv4 or IPv6 address.");
+            }
+
+            return Uri.EscapeDataString(parsed.ToString());
         }
 
         private static string AppendQuerySeparator(string url)

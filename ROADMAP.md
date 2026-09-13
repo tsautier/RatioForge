@@ -11,6 +11,7 @@ Completed on 2026-08-11.
 - [x] **Done - Parser and URL edge cases:** Automated fixtures cover single-file, multi-file, missing metadata, damaged piece hashes, truncated strings, and unterminated integers; tracker tests cover announce events, scrape rewriting, query preservation, and malformed hashes. See [RatioForge.Tests](Source/RatioForge.Tests).
 - [x] **Done - Reproducible releases:** Versioning, local verification, packaging, tagging, GitHub asset checks, and rollback are documented in [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md).
 - [x] **Done - Legacy website decision:** The PHP website is retained as an undeployed historical archive; README, changelog, `version.txt`, and GitHub Releases are canonical. See [ADR 0001](docs/decisions/0001-archive-legacy-website.md).
+- [x] **Done early - Cross-platform desktop:** The primary Avalonia application and portable .NET 10 core run on Windows, Linux, and macOS, with CI packaging for `win-x64`, `linux-x64`, `osx-x64`, and `osx-arm64`.
 
 ## Mid Term
 
@@ -20,12 +21,13 @@ Completed on 2026-08-11.
 - Completed early: sample torrent fixtures now cover parser and tracker behavior; continue extending them when regressions are found.
 - Active: CI enforces startup checks and size budgets for the compressed self-contained and Lite single-file releases.
 - Add a signed release path if code-signing certificates become available.
+- Package a signed and notarized macOS `.app` bundle when Apple signing credentials become available.
 
 ## Long Term
 
-- Move the extracted tracker URL builder and torrent parser into a dedicated reusable core library.
-- Consider a modern UI refresh while preserving the existing lightweight workflow.
+- Completed early: the tracker engine and torrent parser now live in the reusable `RatioForge.Core` library.
+- Completed early: the Avalonia UI refresh preserves the lightweight tracker-session workflow across desktop platforms.
 - Add a documented plugin or profile system for torrent client emulation data.
 - Build a dedicated .NET CLI executable if command-line workflows become part of the product.
-- Add automated compatibility testing across supported Windows runner images.
+- Extend automated compatibility testing beyond the current Windows, Ubuntu, macOS Intel, and macOS Apple Silicon runners.
 - Define a security and disclosure policy for tracker, proxy, and release-distribution issues.

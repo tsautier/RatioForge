@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>RatioForge</RootNamespace>
+    <AssemblyName>RatioForge.Core</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>14.0</LangVersion>
+    <Description>Portable torrent parsing and tracker announce engine for RatioForge</Description>
+    <NoWarn>$(NoWarn);CS8618;CS8625;CS8600;CS8603</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\RatioForge\BitTorrent\**\*.cs" Link="BitTorrent\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\RatioForge\RandomStringGenerator.cs" Link="Legacy\RandomStringGenerator.cs" />
+    <Compile Include="..\RatioForge\TorrentClient.cs" Link="Legacy\TorrentClient.cs" />
+    <Compile Include="..\RatioForge\TorrentClientFactory.cs" Link="Legacy\TorrentClientFactory.cs" />
+    <Compile Include="..\RatioForge\TorrentInfo.cs" Link="Legacy\TorrentInfo.cs" />
+    <Compile Include="..\RatioForge\TrackerUrlBuilder.cs" Link="Legacy\TrackerUrlBuilder.cs" />
+    <Compile Include="..\RatioForge\VersionChecker.cs" Link="Legacy\VersionChecker.cs" />
+  </ItemGroup>
+</Project>

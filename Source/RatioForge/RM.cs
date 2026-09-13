@@ -29,8 +29,8 @@ namespace RatioForge
         private readonly Random rand = new Random(((int)DateTime.Now.Ticks));
         private int remWork = 0;
         internal string DefaultDirectory = "";
-        private const string DefaultClient = "uTorrent";
-        private const string DefaultClientVersion = "3.3.2";
+        private const string DefaultClient = "qBittorrent";
+        private const string DefaultClientVersion = "5.2.3";
 
         // internal delegate SocketEx createSocketCallback();
         internal delegate void SetTextCallback(string logLine);
@@ -275,7 +275,7 @@ namespace RatioForge
                         stream1.ReadTimeout = 0x3e8;
                         try
                         {
-                            stream1.Read(buffer1, 0, buffer1.Length);
+                            stream1.ReadExactly(buffer1, 0, buffer1.Length);
                         }
                         catch (Exception)
                         {

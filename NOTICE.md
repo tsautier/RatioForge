@@ -23,7 +23,7 @@ This project is a fork and continuation of **RatioMaster.NET**, originally creat
 
 RatioForge is based on the original RatioMaster.NET codebase and includes significant modifications:
 - Renamed from RatioMaster.NET to RatioForge (January 2026)
-- Migrated from .NET Framework 4.0 to .NET 8
+- Migrated from .NET Framework 4.0 to .NET 8, then to .NET 10 LTS
 - Modernized codebase and dependencies
 - Updated user interface and branding
 
@@ -40,7 +40,10 @@ In compliance with the MIT License, this project:
 
 ### Third-Party Components
 
-This project may include third-party libraries and components, each governed by their respective licenses.
+This project uses Avalonia UI 12.1.2, distributed under the MIT License, for its cross-platform desktop interface.
+Avalonia source and license: https://github.com/AvaloniaUI/Avalonia
+
+This project may include other third-party libraries and components, each governed by their respective licenses.
 See the LICENSE file and package references for details.
 
 ---

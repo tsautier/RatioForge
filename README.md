@@ -3,7 +3,7 @@
 [![Build RatioForge](https://github.com/tsautier/RatioForge/actions/workflows/build.yml/badge.svg)](https://github.com/tsautier/RatioForge/actions/workflows/build.yml)
 [![Release RatioForge](https://github.com/tsautier/RatioForge/actions/workflows/release.yml/badge.svg)](https://github.com/tsautier/RatioForge/actions/workflows/release.yml)
 
-**RatioForge** is a modern, .NET 8-powered torrent client simulator that allows you to simulate upload and download statistics with BitTorrent trackers.
+**RatioForge** is a modern, .NET 10-powered torrent client simulator that allows you to simulate upload and download statistics with BitTorrent trackers.
 
 > **Note**: This project is a fork and modernization of [RatioMaster.NET](https://github.com/NikolayIT/RatioMaster.NET) by Nikolay Kostov. See [NOTICE.md](NOTICE.md) for full attribution.
 
@@ -18,27 +18,32 @@
   - BitTornado, Burst, BitTyrant, BitSpirit
   - Deluge, Transmission, KTorrent
   - And more!
-- **Modernized**: Rebuilt for .NET 8 with improved performance and Windows 11 support
+- **Current default identity**: qBittorrent 5.2.3, the latest stable release verified by the project
+- **Persistent settings**: Cross-platform session defaults, IPv4/IPv6 source selection, HTTP/SOCKS5 proxy, speed randomization, activity logging, and opt-in debug logs
+- **Cross-platform**: Native desktop builds for Windows, Linux, and macOS
+- **Dual stack networking**: HTTP and HTTPS trackers over IPv4 or IPv6, with automatic routing or explicit local-address binding
+- **Modernized**: Rebuilt for .NET 10 and Avalonia UI
 
 ## Requirements
 
-- **Windows 10/11** (64-bit recommended)
-- The standard self-contained executable does not require a separate .NET installation.
-- The much smaller Lite executable requires the [.NET 8 Desktop Runtime for Windows x64](https://dotnet.microsoft.com/download/dotnet/8.0).
+- **Windows 10/11 x64**, **Linux x64**, or **macOS 15+** on Intel or Apple Silicon
+- Self-contained downloads do not require a separate .NET installation.
+- Much smaller Lite downloads require the [.NET 10 Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) for the matching platform and architecture.
 
 ## Installation
 
 1. Download the latest release from the [Releases](https://github.com/tsautier/RatioForge/releases) page.
-2. Choose `RatioForge-<version>-win-x64-lite.exe` for the smallest download when .NET 8 Desktop Runtime is installed.
-3. Choose `RatioForge-<version>-win-x64.exe` or the zip archive for a self-contained build that needs no separate runtime.
-4. Extract the archive when using the zip package, then run the executable.
+2. Choose the asset for `win-x64`, `linux-x64`, `osx-x64`, or `osx-arm64`.
+3. Choose the `-lite` executable for the smallest download when .NET 10 is already installed.
+4. Otherwise choose the self-contained executable or archive. Linux uses `tar.gz`, macOS archives contain `RatioForge.app`, and Windows uses `zip`.
+5. On Linux or macOS, make the raw executable runnable after download with `chmod +x RatioForge-*`.
 
 ## Building from Source
 
 ### Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- Visual Studio 2022 (or later) or Rider
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- Visual Studio 2026 version 18.0 or later, or Rider with .NET 10 support
 
 ### Build Steps
 
@@ -54,7 +59,7 @@ dotnet restore Source/RatioForge.sln
 dotnet build Source/RatioForge.sln --configuration Release
 
 # Run
-dotnet run --project Source/RatioForge/RatioForge.csproj
+dotnet run --project Source/RatioForge.Desktop/RatioForge.Desktop.csproj
 ```
 
 ### Running Tests
@@ -70,13 +75,17 @@ dotnet test Source/RatioForge.sln
 3. Configure upload/download speeds and ratio
 4. Click "Start" to begin sending fake stats to the tracker
 
-For detailed usage instructions, see the built-in help menu.
+For support, use the built-in Help menu to open the GitHub repository or create an issue.
 
-## What's New in 1.0.13 (RatioForge)
+## What's New in 1.1.0 (RatioForge)
 
-- **Current Client IDs**: Added qBittorrent 5.2.3, Transmission 4.1.3, KTorrent 26.04.3, and BiglyBT 4.1.0.0 profiles
-- **Source-Verified Signatures**: Peer ID prefixes and User-Agents are derived from the clients' official tagged source code
-- **Compatibility**: Existing legacy profiles remain available alongside the new defaults
+- Restored settings, copyable client key and peer ID, torrent info-hash, and local IPv4/IPv6 visibility.
+- Added optional persistent debug logging and Help links for the repository and issue creation.
+
+- **Windows, Linux, and macOS**: Replaced the primary WinForms shell with an Avalonia desktop application
+- **Portable core**: Extracted torrent parsing, client profiles, and HTTP(S) tracker announces into `RatioForge.Core`
+- **Smaller downloads**: Every platform receives a compact framework-dependent Lite executable alongside the self-contained package
+- **Release pipeline**: Tests run on all three operating systems and release assets cover four runtime identifiers
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.
 The source evidence for current emulation signatures is recorded in the [2026 client profile audit](docs/client-profile-audit-2026-08-11.md).
@@ -122,5 +131,6 @@ This software is for educational purposes only. Use at your own risk. The develo
 
 ---
 
-**Made with ❤️ using .NET 8**  
+**Made with ❤️ using .NET 10**
+
 **Based on RatioMaster.NET by Nikolay Kostov**

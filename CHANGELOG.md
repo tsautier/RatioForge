@@ -5,6 +5,40 @@ All notable changes to RatioForge will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-09-13
+
+- Expose the stable client key and peer ID used throughout a tracker session.
+- Display torrent info-hash and discovered local IPv4/IPv6 addresses in the desktop interface.
+- Add opt-in persistent debug logs and Help shortcuts to the GitHub repository and issue form.
+
+### Added
+- **Cross-platform desktop:** Added an Avalonia 12 application targeting Windows x64, Linux x64, macOS Intel, and macOS Apple Silicon.
+- **Portable engine:** Added `RatioForge.Core` for torrent metadata, client identities, tracker URL generation, and HTTP(S) announces.
+- **Portable smoke checks:** Added a display-independent `--smoke-test` entry point to every published executable.
+- **Release artifacts:** Added self-contained archives, raw executables, Lite executables, and SHA256 files for four runtime identifiers.
+- **IPv6:** Added dual-stack HTTP and HTTPS tracker connections, literal `[IPv6]` tracker URLs, local IPv4/IPv6 address selection, and IPv6-safe URL encoding.
+
+### Changed
+- **Tests:** Retargeted the automated suite to portable `net10.0` and added coverage for the public core API.
+- **CI:** Tests now run on Windows, Ubuntu, and macOS; packaging runs on native runners for each architecture.
+- **Networking:** Replaced the obsolete version-checking `WebRequest` implementation with `HttpClient`.
+- **Default identity:** New sessions now explicitly select the latest stable qBittorrent 5.2.3 profile in both desktop interfaces.
+- **Settings:** Restored a cross-platform settings window with persisted session defaults, address selection, proxy configuration, rate randomization, and activity logging.
+
+## [1.0.14] - 2026-09-11
+
+### Changed
+- **Runtime**: Migrated the application and test projects from .NET 8 to `net10.0-windows` on .NET 10 LTS.
+- **Language**: Updated the compiler language version from C# 12 to C# 14.
+- **SDK**: Added `global.json` with .NET 10 feature-band roll-forward for reproducible local and CI builds.
+- **Dependencies**: Removed the redundant `System.Text.Encoding.CodePages` package now supplied by .NET 10.
+- **CI**: Updated build and tagged-release workflows to install the .NET 10 SDK.
+- **Docs**: Updated runtime requirements, build prerequisites, release checks, and project metadata for .NET 10.
+
+### Fixed
+- **WinForms**: Declared designer serialization behavior for custom panel properties required by current WinForms analyzers.
+- **Network**: Made incoming BitTorrent handshake reads exact instead of assuming a single stream read fills the buffer.
+
 ## [1.0.13] - 2026-08-11
 
 ### Added
@@ -229,6 +263,8 @@ For complete historical changelog, see [HISTORY.TXT](HISTORY.TXT)
 
 ---
 
+[1.1.0]: https://github.com/tsautier/RatioForge/releases/tag/v1.1.0
+[1.0.14]: https://github.com/tsautier/RatioForge/releases/tag/v1.0.14
 [1.0.13]: https://github.com/tsautier/RatioForge/releases/tag/v1.0.13
 [1.0.12]: https://github.com/tsautier/RatioForge/releases/tag/v1.0.12
 [1.0.11]: https://github.com/tsautier/RatioForge/releases/tag/v1.0.11

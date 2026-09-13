@@ -11,7 +11,7 @@ namespace RatioForge
         [STAThread]
         internal static void Main()
         {
-            // Fix for encoding 1252 error in .NET 8
+            // Register the legacy Windows-1252 encoding used by some torrent metadata.
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
             Application.EnableVisualStyles();

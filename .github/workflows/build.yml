@@ -10,129 +10,76 @@ permissions:
   contents: read
 
 jobs:
-  build:
-
-    runs-on: windows-2025
-
+  test:
+    name: Test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v5
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v5
-      with:
-        dotnet-version: 8.0.x
+      - uses: actions/checkout@v5
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore Source/RatioForge.sln
+      - name: Build
+        run: dotnet build Source/RatioForge.sln --no-restore --configuration Release
+      - name: Test
+        run: dotnet test Source/RatioForge.sln --no-build --configuration Release --verbosity normal
 
-    - name: Read and validate version
-      id: version
-      shell: pwsh
-      run: |
-        $version = (Get-Content version.txt -Raw).Trim()
-        if ($version -notmatch '^\d+\.\d+\.\d+$') {
-          throw "version.txt must contain a SemVer core version. Current value: '$version'"
-        }
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Audit NuGet dependencies
+        shell: pwsh
+        run: ./build/Test-NuGetSecurity.ps1
 
-        "version=$version" >> $env:GITHUB_OUTPUT
-        
-    - name: Restore dependencies
-      run: dotnet restore Source/RatioForge.sln
-
-    - name: Audit NuGet dependencies
-      shell: pwsh
-      run: ./build/Test-NuGetSecurity.ps1
-      
-    - name: Build
-      run: dotnet build Source/RatioForge.sln --no-restore --configuration Release
-      
-    - name: Test
-      run: dotnet test Source/RatioForge.sln --no-build --configuration Release --verbosity normal
-
-    - name: Publish self-contained Windows GUI executable
-      run: dotnet publish Source/RatioForge/RatioForge.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false --output artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64
-
-    - name: Publish Lite Windows GUI executable
-      run: dotnet publish Source/RatioForge/RatioForge.csproj --configuration Release --runtime win-x64 --self-contained false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false --output artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64-lite
-
-    - name: Smoke check Windows build
-      shell: pwsh
-      run: |
-        $version = "${{ steps.version.outputs.version }}"
-        $executables = @(
-          @{
-            Source = "artifacts/RatioForge-$version-win-x64/RatioForge.exe"
-            Destination = "artifacts/RatioForge-$version-win-x64.exe"
-            MaximumBytes = 100MB
-          },
-          @{
-            Source = "artifacts/RatioForge-$version-win-x64-lite/RatioForge.exe"
-            Destination = "artifacts/RatioForge-$version-win-x64-lite.exe"
-            MaximumBytes = 10MB
-          }
-        )
-
-        foreach ($item in $executables) {
-          if (!(Test-Path $item.Source)) {
-            throw "Missing GUI executable: $($item.Source)"
-          }
-
-          $file = Get-Item $item.Source
-          if ($file.VersionInfo.FileVersion -ne "$version.0") {
-            throw "Expected file version '$version.0', got '$($file.VersionInfo.FileVersion)' for $($item.Source)"
-          }
-
-          if ($file.Length -gt $item.MaximumBytes) {
-            throw "$($item.Source) is $($file.Length) bytes; expected at most $($item.MaximumBytes)."
-          }
-
-          $process = Start-Process -FilePath $file.FullName -PassThru
-          try {
-            Start-Sleep -Seconds 5
-            if ($process.HasExited) {
-              throw "$($item.Source) exited during the startup smoke check with code $($process.ExitCode)."
-            }
-          }
-          finally {
-            if (!$process.HasExited) {
-              Stop-Process -Id $process.Id -Force
-            }
-          }
-
-          Copy-Item -LiteralPath $file.FullName -Destination $item.Destination -Force
-        }
-
-    - name: Package Windows build
-      shell: pwsh
-      run: |
-        $version = "${{ steps.version.outputs.version }}"
-        Compress-Archive `
-          -Path "artifacts/RatioForge-$version-win-x64/*" `
-          -DestinationPath "artifacts/RatioForge-$version-win-x64.zip" `
-          -Force
-
-    - name: Generate SHA256 checksums
-      shell: pwsh
-      run: |
-        $version = "${{ steps.version.outputs.version }}"
-        $files = @(
-          "artifacts/RatioForge-$version-win-x64.zip",
-          "artifacts/RatioForge-$version-win-x64.exe",
-          "artifacts/RatioForge-$version-win-x64-lite.exe"
-        )
-
-        $checksums = foreach ($file in $files) {
-          $hash = Get-FileHash -Algorithm SHA256 -Path $file
-          "$($hash.Hash.ToLowerInvariant())  $([System.IO.Path]::GetFileName($file))"
-        }
-
-        $checksums | Set-Content -Encoding ascii "artifacts/RatioForge-$version-win-x64.sha256"
-
-    - name: Upload Windows build artifacts
-      uses: actions/upload-artifact@v7
-      with:
-        name: RatioForge-${{ steps.version.outputs.version }}-win-x64
-        path: |
-          artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64.zip
-          artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64.exe
-          artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64-lite.exe
-          artifacts/RatioForge-${{ steps.version.outputs.version }}-win-x64.sha256
-        if-no-files-found: error
-        retention-days: 14
+  package:
+    name: Package ${{ matrix.runtime }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2025
+            runtime: win-x64
+          - os: ubuntu-24.04
+            runtime: linux-x64
+          - os: macos-15
+            runtime: osx-x64
+          - os: macos-15
+            runtime: osx-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Publish and smoke check
+        shell: pwsh
+        run: ./build/Publish-Desktop.ps1 -Runtime ${{ matrix.runtime }}
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: RatioForge-${{ matrix.runtime }}
+          path: |
+            artifacts/*.zip
+            artifacts/*.tar.gz
+            artifacts/*.exe
+            artifacts/RatioForge-*-linux-x64
+            artifacts/RatioForge-*-linux-x64-lite
+            artifacts/RatioForge-*-osx-x64
+            artifacts/RatioForge-*-osx-x64-lite
+            artifacts/RatioForge-*-osx-arm64
+            artifacts/RatioForge-*-osx-arm64-lite
+            artifacts/*.sha256
+          if-no-files-found: error
+          retention-days: 14

@@ -2,19 +2,19 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>RatioForge</RootNamespace>
     <AssemblyName>RatioForge</AssemblyName>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>Resources\Main.ico</ApplicationIcon>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <LangVersion>12.0</LangVersion>
+    <LangVersion>14.0</LangVersion>
     <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
     <ProjectGuid>{C732F44B-C910-4C9B-A97F-38DFFAB3C957}</ProjectGuid>
     <NoWin32Manifest>true</NoWin32Manifest>
     <AssemblyTitle>RatioForge</AssemblyTitle>
-    <Description>The most powerful torrent client simulator - Modernized for .NET 8</Description>
+    <Description>The most powerful torrent client simulator - Modernized for .NET 10</Description>
     <Company>Thomas SAUTIER</Company>
     <Product>RatioForge</Product>
     <Copyright>Copyright © 2006-2016 Nikolay Kostov, 2026-present Thomas SAUTIER</Copyright>
@@ -29,10 +29,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <CodeAnalysisRuleSet>..\Rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.10" />
-  </ItemGroup>
 
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">

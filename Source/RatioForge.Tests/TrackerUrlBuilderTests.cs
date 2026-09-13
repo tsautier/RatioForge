@@ -89,6 +89,22 @@ namespace RatioForge.Tests
                 Throws.TypeOf<FormatException>());
         }
 
+        [Test]
+        public void EncodeIpAddressShouldPercentEncodeIpv6()
+        {
+            Assert.That(
+                TrackerUrlBuilder.EncodeIpAddress("2001:db8::42"),
+                Is.EqualTo("2001%3Adb8%3A%3A42"));
+        }
+
+        [Test]
+        public void EncodeIpAddressShouldRejectInvalidAddress()
+        {
+            Assert.That(
+                (Action)(() => TrackerUrlBuilder.EncodeIpAddress("not-an-address")),
+                Throws.TypeOf<FormatException>());
+        }
+
         private static TorrentInfo CreateTorrentInfo(string tracker)
         {
             return new TorrentInfo(16385, 47)

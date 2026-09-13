@@ -1,8 +1,7 @@
 namespace RatioForge
 {
     using System;
-    using System.IO;
-    using System.Net;
+    using System.Net.Http;
     using System.Reflection;
     using System.Text;
 
@@ -12,7 +11,7 @@ namespace RatioForge
         private readonly StringBuilder logBuilder;
         public static readonly string LocalVersion = GetAssemblyVersion();
         public static readonly string PublicVersion = LocalVersion;
-        public const string ReleaseDate = "11-08-2026";
+        public const string ReleaseDate = "13-09-2026";
         private const string ProgramPageVersion = "https://raw.githubusercontent.com/tsautier/RatioForge/master/version.txt";
 
         private readonly string userAgent;
@@ -70,20 +69,11 @@ namespace RatioForge
 
         public string GetServerVersionId()
         {
-            var url = ProgramPageVersion; // + LocalVersion;
             try
             {
-                var request1 = (HttpWebRequest)WebRequest.Create(url);
-                request1.UserAgent = this.userAgent;
-                request1.Timeout = 2500;
-                using (var response1 = (HttpWebResponse)request1.GetResponse())
-                {
-                    using (var reader1 = new StreamReader(response1.GetResponseStream()))
-                    {
-                        var data = reader1.ReadToEnd();
-                        return data.Trim();
-                    }
-                }
+                using var client = new HttpClient { Timeout = TimeSpan.FromMilliseconds(2500) };
+                client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", this.userAgent);
+                return client.GetStringAsync(ProgramPageVersion).GetAwaiter().GetResult().Trim();
             }
             catch (Exception exception1)
             {
