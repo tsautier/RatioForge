@@ -12,6 +12,8 @@
         <ScrollViewer>
           <StackPanel Margin="8,18" Spacing="12">
             <TextBlock Classes="section-title" Text="Session defaults" />
+            <TextBlock Classes="label" Text="Appearance" />
+            <ComboBox x:Name="ThemeModeCombo" />
             <TextBlock Classes="label" Text="Emulated client" />
             <ComboBox x:Name="ProfileCombo" />
             <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
@@ -105,7 +107,7 @@
       </TabItem>
     </TabControl>
 
-    <Border Grid.Row="1" BorderBrush="#2C343D" BorderThickness="0,1,0,0" Padding="18,12">
+    <Border Grid.Row="1" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0" Padding="18,12">
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
         <Button Content="Cancel" Click="Cancel_Click" Padding="16,8" />
         <Button Classes="primary" Content="Save settings" Click="Save_Click" Padding="16,8" />

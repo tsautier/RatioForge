@@ -5,6 +5,16 @@ All notable changes to RatioForge will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-09-14
+
+### Added
+- **Appearance:** Added automatic system theme detection plus persistent manual Dark and Light modes.
+- **Updates:** Added startup and manual checks against the latest published GitHub Release, with direct access from Help.
+
+### Fixed
+- **Session counters:** Loading a new torrent now stops the previous session and resets uploaded, downloaded, completion, and announce counters to zero.
+- **Version source:** Replaced the mutable `version.txt` branch lookup with GitHub's latest published release endpoint.
+
 ## [1.1.0] - 2026-09-13
 
 - Expose the stable client key and peer ID used throughout a tracker session.
@@ -263,6 +273,7 @@ For complete historical changelog, see [HISTORY.TXT](HISTORY.TXT)
 
 ---
 
+[1.1.1]: https://github.com/tsautier/RatioForge/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/tsautier/RatioForge/releases/tag/v1.1.0
 [1.0.14]: https://github.com/tsautier/RatioForge/releases/tag/v1.0.14
 [1.0.13]: https://github.com/tsautier/RatioForge/releases/tag/v1.0.13

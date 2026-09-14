@@ -19,7 +19,8 @@
   - Deluge, Transmission, KTorrent
   - And more!
 - **Current default identity**: qBittorrent 5.2.3, the latest stable release verified by the project
-- **Persistent settings**: Cross-platform session defaults, IPv4/IPv6 source selection, HTTP/SOCKS5 proxy, speed randomization, activity logging, and opt-in debug logs
+- **Persistent settings**: Cross-platform session defaults, automatic/dark/light appearance, IPv4/IPv6 source selection, HTTP/SOCKS5 proxy, speed randomization, activity logging, and opt-in debug logs
+- **Release updates**: Automatic and manual checks against the latest published GitHub release
 - **Cross-platform**: Native desktop builds for Windows, Linux, and macOS
 - **Dual stack networking**: HTTP and HTTPS trackers over IPv4 or IPv6, with automatic routing or explicit local-address binding
 - **Modernized**: Rebuilt for .NET 10 and Avalonia UI
@@ -77,15 +78,11 @@ dotnet test Source/RatioForge.sln
 
 For support, use the built-in Help menu to open the GitHub repository or create an issue.
 
-## What's New in 1.1.0 (RatioForge)
+## What's New in 1.1.1 (RatioForge)
 
-- Restored settings, copyable client key and peer ID, torrent info-hash, and local IPv4/IPv6 visibility.
-- Added optional persistent debug logging and Help links for the repository and issue creation.
-
-- **Windows, Linux, and macOS**: Replaced the primary WinForms shell with an Avalonia desktop application
-- **Portable core**: Extracted torrent parsing, client profiles, and HTTP(S) tracker announces into `RatioForge.Core`
-- **Smaller downloads**: Every platform receives a compact framework-dependent Lite executable alongside the self-contained package
-- **Release pipeline**: Tests run on all three operating systems and release assets cover four runtime identifiers
+- **Clean sessions**: Loading another torrent now resets transferred amounts, completion, and announce timing to zero
+- **Appearance**: Follow the operating system theme automatically or select Dark or Light manually in Settings
+- **Release updates**: RatioForge checks the latest published GitHub release at startup and on demand from Help
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.
 The source evidence for current emulation signatures is recorded in the [2026 client profile audit](docs/client-profile-audit-2026-08-11.md).

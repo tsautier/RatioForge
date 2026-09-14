@@ -1,25 +1,25 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="RatioForge.Desktop.App"
-             RequestedThemeVariant="Dark">
+             RequestedThemeVariant="Default">
   <Application.Styles>
     <FluentTheme />
     <Style Selector="Window">
       <Setter Property="FontFamily" Value="Inter" />
-      <Setter Property="Background" Value="#111418" />
+      <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
     </Style>
     <Style Selector="TextBlock.section-title">
       <Setter Property="FontSize" Value="13" />
       <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="#F2F5F7" />
+      <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
     </Style>
     <Style Selector="TextBlock.label">
       <Setter Property="FontSize" Value="12" />
-      <Setter Property="Foreground" Value="#9CA8B3" />
+      <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
     </Style>
     <Style Selector="Border.panel">
-      <Setter Property="Background" Value="#191E24" />
-      <Setter Property="BorderBrush" Value="#2C343D" />
+      <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="6" />
       <Setter Property="Padding" Value="18" />
@@ -37,4 +37,32 @@
       <Setter Property="Padding" Value="18,10" />
     </Style>
   </Application.Styles>
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#111418" />
+          <SolidColorBrush x:Key="ChromeBackgroundBrush" Color="#151A1F" />
+          <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#191E24" />
+          <SolidColorBrush x:Key="PanelBorderBrush" Color="#2C343D" />
+          <SolidColorBrush x:Key="PrimaryTextBrush" Color="#F2F5F7" />
+          <SolidColorBrush x:Key="SecondaryTextBrush" Color="#9CA8B3" />
+          <SolidColorBrush x:Key="MutedTextBrush" Color="#77838E" />
+          <SolidColorBrush x:Key="AccentTextBrush" Color="#66D5BE" />
+          <SolidColorBrush x:Key="PlatformBackgroundBrush" Color="#20332F" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F4F6F7" />
+          <SolidColorBrush x:Key="ChromeBackgroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="PanelBorderBrush" Color="#CBD3D8" />
+          <SolidColorBrush x:Key="PrimaryTextBrush" Color="#172026" />
+          <SolidColorBrush x:Key="SecondaryTextBrush" Color="#52616B" />
+          <SolidColorBrush x:Key="MutedTextBrush" Color="#687780" />
+          <SolidColorBrush x:Key="AccentTextBrush" Color="#087D69" />
+          <SolidColorBrush x:Key="PlatformBackgroundBrush" Color="#DCEFEA" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
 </Application>

@@ -25,7 +25,7 @@ If applicable, add screenshots to help explain your problem.
 
 **Environment (please complete the following information):**
  - OS: [e.g. Windows 11]
- - RatioForge Version: [e.g. 1.1.0]
+ - RatioForge Version: [e.g. 1.1.1]
  - .NET Runtime: [e.g. 10.0.x]
 
 **Additional context**

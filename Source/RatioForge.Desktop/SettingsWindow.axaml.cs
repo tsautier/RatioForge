@@ -17,6 +17,8 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         this.settings = settings;
+        ThemeModeCombo.ItemsSource = Enum.GetValues<ApplicationThemeMode>();
+        ThemeModeCombo.SelectedItem = settings.ThemeMode;
         ProfileCombo.ItemsSource = ClientProfileCatalog.All;
         ProfileCombo.SelectedItem = ClientProfileCatalog.All.First(
             profile => profile.Name == settings.DefaultProfileName);
@@ -68,6 +70,9 @@ public partial class SettingsWindow : Window
 
     private void Save_Click(object? sender, RoutedEventArgs e)
     {
+        settings.ThemeMode = ThemeModeCombo.SelectedItem is ApplicationThemeMode themeMode
+            ? themeMode
+            : ApplicationThemeMode.System;
         settings.DefaultProfileName = (ProfileCombo.SelectedItem as ClientProfile)?.Name
             ?? ClientProfileCatalog.DefaultProfileName;
         settings.LocalAddress = AddressCombo.SelectedIndex > 0

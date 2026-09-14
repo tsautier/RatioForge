@@ -4,19 +4,24 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Styling;
 using Avalonia.Threading;
 
 public partial class MainWindow : Window
 {
     private const string RepositoryUrl = "https://github.com/tsautier/RatioForge";
     private const string NewIssueUrl = RepositoryUrl + "/issues/new/choose";
+    private const string LatestReleaseUrl = RepositoryUrl + "/releases/latest";
     private readonly ObservableCollection<string> activity = [];
     private readonly DispatcherTimer timer;
     private readonly TrackerAnnounceClient announceClient = new();
+    private readonly ReleaseUpdateChecker updateChecker = new();
     private readonly ApplicationSettings settings;
+    private readonly string currentVersion;
     private ClientIdentity? clientIdentity;
     private TorrentDocument? torrent;
     private CancellationTokenSource? sessionCancellation;
@@ -25,6 +30,8 @@ public partial class MainWindow : Window
     private long uploaded;
     private long downloaded;
     private bool announcing;
+    private int sessionGeneration;
+    private string availableReleaseUrl = LatestReleaseUrl;
 
     public MainWindow()
     {
@@ -34,16 +41,29 @@ public partial class MainWindow : Window
         ClientCombo.ItemsSource = ClientProfileCatalog.All;
         ApplySettings();
         PlatformText.Text = $".NET 10 / {GetPlatformName()}";
-        VersionText.Text = "v" + (typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "unknown");
+        currentVersion = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+        VersionText.Text = "v" + currentVersion;
         timer = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Normal, Timer_Tick);
+        ResetTransferCounters();
         AddActivity("Ready. Open a torrent file to configure a session.");
         AddDebug($"Application started on {Environment.OSVersion}; log file: {DebugLogStore.DefaultPath}");
-        Closed += (_, _) => announceClient.Dispose();
+        Opened += async (_, _) => await CheckForUpdatesAsync(manual: false);
+        Closed += (_, _) =>
+        {
+            sessionCancellation?.Cancel();
+            sessionCancellation?.Dispose();
+            announceClient.Dispose();
+        };
     }
 
     private void Repository_Click(object? sender, RoutedEventArgs e) => OpenWebPage(RepositoryUrl);
 
     private void CreateIssue_Click(object? sender, RoutedEventArgs e) => OpenWebPage(NewIssueUrl);
+
+    private async void CheckForUpdates_Click(object? sender, RoutedEventArgs e) =>
+        await CheckForUpdatesAsync(manual: true);
+
+    private void LatestRelease_Click(object? sender, RoutedEventArgs e) => OpenWebPage(availableReleaseUrl);
 
     private async void Settings_Click(object? sender, RoutedEventArgs e)
     {
@@ -71,6 +91,16 @@ public partial class MainWindow : Window
 
     private void ApplySettings()
     {
+        if (Application.Current is not null)
+        {
+            Application.Current.RequestedThemeVariant = settings.ThemeMode switch
+            {
+                ApplicationThemeMode.Dark => ThemeVariant.Dark,
+                ApplicationThemeMode.Light => ThemeVariant.Light,
+                _ => ThemeVariant.Default,
+            };
+        }
+
         ClientCombo.SelectedItem = ClientProfileCatalog.All.FirstOrDefault(
             profile => profile.Name == settings.DefaultProfileName) ?? ClientProfileCatalog.Default;
         var addresses = new List<string> { "Automatic (IPv4 / IPv6)" };
@@ -108,14 +138,15 @@ public partial class MainWindow : Window
 
         try
         {
-            torrent = TorrentDocument.Load(files[0].Path.LocalPath);
+            TorrentDocument loadedTorrent = TorrentDocument.Load(files[0].Path.LocalPath);
+            StopActiveSession();
+            torrent = loadedTorrent;
+            ResetTransferCounters();
             TorrentPathBox.Text = torrent.FilePath;
             TorrentNameText.Text = torrent.Name;
             TorrentSizeText.Text = FormatBytes(torrent.TotalSize);
             TrackerText.Text = torrent.Tracker;
             InfoHashBox.Text = torrent.InfoHash;
-            downloaded = (long)(torrent.TotalSize * ((double)(CompletedBox.Value ?? 0) / 100d));
-            DownloadedText.Text = FormatBytes(downloaded);
             AddActivity($"Loaded {torrent.Name} ({torrent.FileCount} file(s), {FormatBytes(torrent.TotalSize)}).");
             AddDebug($"Torrent loaded: name={torrent.Name}; info_hash={torrent.InfoHash}; tracker={torrent.Tracker}");
             StatusText.Text = "Torrent loaded";
@@ -179,14 +210,34 @@ public partial class MainWindow : Window
             await SendAnnounceAsync("stopped", token);
         }
 
+        StopActiveSession();
+        StatusText.Text = "Stopped";
+        AddActivity("Session stopped.");
+    }
+
+    private void StopActiveSession()
+    {
+        sessionGeneration++;
+        announcing = false;
+        timer.Stop();
         sessionCancellation?.Cancel();
         sessionCancellation?.Dispose();
         sessionCancellation = null;
         StartButton.IsEnabled = true;
         StopButton.IsEnabled = false;
         CountdownText.Text = "-";
-        StatusText.Text = "Stopped";
-        AddActivity("Session stopped.");
+        nextAnnounce = default;
+    }
+
+    private void ResetTransferCounters()
+    {
+        uploaded = 0;
+        downloaded = 0;
+        CompletedBox.Value = 0;
+        UploadedText.Text = FormatBytes(0);
+        DownloadedText.Text = FormatBytes(0);
+        CountdownText.Text = "-";
+        nextAnnounce = default;
     }
 
     private async void Timer_Tick(object? sender, EventArgs e)
@@ -218,6 +269,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        int announceGeneration = sessionGeneration;
         announcing = true;
         StatusText.Text = "Contacting tracker...";
         try
@@ -235,6 +287,11 @@ public partial class MainWindow : Window
                 clientIdentity);
             AddDebug($"Announce sending: event={eventName}; tracker={torrent.Tracker}; local_ip={options.LocalIp}; uploaded={uploaded}; downloaded={downloaded}");
             TrackerAnnounceResult result = await announceClient.AnnounceAsync(options, cancellationToken);
+            if (announceGeneration != sessionGeneration)
+            {
+                return;
+            }
+
             int interval = result.IntervalSeconds ?? Decimal.ToInt32(IntervalBox.Value ?? 1800);
             interval = Math.Max(30, interval);
             nextAnnounce = DateTimeOffset.UtcNow.AddSeconds(interval);
@@ -244,10 +301,18 @@ public partial class MainWindow : Window
         }
         catch (OperationCanceledException)
         {
-            StatusText.Text = "Cancelled";
+            if (announceGeneration == sessionGeneration)
+            {
+                StatusText.Text = "Cancelled";
+            }
         }
         catch (Exception exception)
         {
+            if (announceGeneration != sessionGeneration)
+            {
+                return;
+            }
+
             int retry = Math.Max(30, Decimal.ToInt32(IntervalBox.Value ?? 1800));
             nextAnnounce = DateTimeOffset.UtcNow.AddSeconds(retry);
             StatusText.Text = "Tracker request failed";
@@ -256,7 +321,10 @@ public partial class MainWindow : Window
         }
         finally
         {
-            announcing = false;
+            if (announceGeneration == sessionGeneration)
+            {
+                announcing = false;
+            }
         }
     }
 
@@ -308,6 +376,43 @@ public partial class MainWindow : Window
         {
             StatusText.Text = "Could not open browser";
             AddActivity("ERROR " + exception.Message, force: true);
+        }
+    }
+
+    private async Task CheckForUpdatesAsync(bool manual)
+    {
+        if (manual)
+        {
+            StatusText.Text = "Checking for updates...";
+        }
+
+        try
+        {
+            ReleaseUpdateResult result = await updateChecker.CheckAsync(currentVersion);
+            availableReleaseUrl = result.ReleaseUrl;
+            if (result.IsUpdateAvailable)
+            {
+                UpdateButton.Content = $"v{result.LatestVersion.ToString(3)} available";
+                UpdateButton.IsVisible = true;
+                StatusText.Text = "Update available";
+                AddActivity($"Update v{result.LatestVersion.ToString(3)} is available.");
+            }
+            else if (manual)
+            {
+                StatusText.Text = "RatioForge is up to date";
+                AddActivity($"Version {currentVersion} is up to date.");
+            }
+
+            AddDebug($"Update check: current={result.CurrentVersion}; latest={result.LatestVersion}; available={result.IsUpdateAvailable}");
+        }
+        catch (Exception exception)
+        {
+            AddDebug("Update check failed: " + exception.Message);
+            if (manual)
+            {
+                StatusText.Text = "Could not check for updates";
+                AddActivity("ERROR Could not check GitHub for the latest release.", force: true);
+            }
         }
     }
 

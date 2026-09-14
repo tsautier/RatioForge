@@ -61,6 +61,7 @@ public class PortableCoreTests
             var expected = new ApplicationSettings
             {
                 DefaultProfileName = "Transmission 4.1.3",
+                ThemeMode = ApplicationThemeMode.Light,
                 LocalAddress = "2001:db8::42",
                 Port = 51413,
                 RandomizeUpload = true,
@@ -79,6 +80,7 @@ public class PortableCoreTests
             Assert.Multiple(() =>
             {
                 Assert.That(actual.DefaultProfileName, Is.EqualTo("Transmission 4.1.3"));
+                Assert.That(actual.ThemeMode, Is.EqualTo(ApplicationThemeMode.Light));
                 Assert.That(actual.LocalAddress, Is.EqualTo("2001:db8::42"));
                 Assert.That(actual.Port, Is.EqualTo(51413));
                 Assert.That(actual.RandomizeUpload, Is.True);
@@ -96,6 +98,38 @@ public class PortableCoreTests
                 File.Delete(path);
             }
         }
+    }
+
+    [Test]
+    public async Task ReleaseUpdateCheckerShouldUseLatestPublishedGitHubRelease()
+    {
+        var handler = new StubHandler("{\"tag_name\":\"v1.2.0\",\"html_url\":\"https://github.com/tsautier/RatioForge/releases/tag/v1.2.0\"}");
+        using var client = new HttpClient(handler);
+        var checker = new ReleaseUpdateChecker(client);
+
+        ReleaseUpdateResult result = await checker.CheckAsync("1.1.1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsUpdateAvailable, Is.True);
+            Assert.That(result.LatestVersion, Is.EqualTo(new Version(1, 2, 0)));
+            Assert.That(result.ReleaseUrl, Is.EqualTo("https://github.com/tsautier/RatioForge/releases/tag/v1.2.0"));
+            Assert.That(handler.RequestUri, Is.EqualTo(ReleaseUpdateChecker.LatestReleaseApiUrl));
+            Assert.That(handler.UserAgent, Is.EqualTo("RatioForge/1.1.1"));
+        });
+    }
+
+    [Test]
+    public async Task ReleaseUpdateCheckerShouldAcceptTagWithoutPrefix()
+    {
+        var handler = new StubHandler("{\"tag_name\":\"1.1.1\"}");
+        using var client = new HttpClient(handler);
+        var checker = new ReleaseUpdateChecker(client);
+
+        ReleaseUpdateResult result = await checker.CheckAsync("1.1.1");
+
+        Assert.That(result.IsUpdateAvailable, Is.False);
+        Assert.That(result.ReleaseUrl, Is.EqualTo(ReleaseUpdateChecker.LatestReleasePageUrl));
     }
 
     [Test]

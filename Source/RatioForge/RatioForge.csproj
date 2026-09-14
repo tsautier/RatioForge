@@ -31,6 +31,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\RatioForge.Core\ReleaseUpdateChecker.cs" Link="ReleaseUpdateChecker.cs" />
     <Compile Update="Properties\Resources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

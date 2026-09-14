@@ -3,9 +3,19 @@ namespace RatioForge;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+/// <summary>Controls whether RatioForge follows the operating system theme or uses a fixed theme.</summary>
+public enum ApplicationThemeMode
+{
+    System,
+    Dark,
+    Light,
+}
+
 /// <summary>Persistent, cross-platform defaults for new RatioForge sessions.</summary>
 public sealed class ApplicationSettings
 {
+    public ApplicationThemeMode ThemeMode { get; set; } = ApplicationThemeMode.System;
+
     public string DefaultProfileName { get; set; } = ClientProfileCatalog.DefaultProfileName;
 
     public string LocalAddress { get; set; } = string.Empty;
@@ -56,6 +66,11 @@ public sealed class ApplicationSettings
 
     public void Normalize()
     {
+        if (!Enum.IsDefined(ThemeMode))
+        {
+            ThemeMode = ApplicationThemeMode.System;
+        }
+
         if (!ClientProfileCatalog.All.Any(profile => profile.Name == DefaultProfileName))
         {
             DefaultProfileName = ClientProfileCatalog.DefaultProfileName;

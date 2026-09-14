@@ -6,11 +6,11 @@
         MinWidth="820" MinHeight="600"
         WindowStartupLocation="CenterScreen">
   <Grid RowDefinitions="64,*,34">
-    <Border Grid.Row="0" Background="#151A1F" BorderBrush="#2C343D" BorderThickness="0,0,0,1" Padding="24,0">
+    <Border Grid.Row="0" Background="{DynamicResource ChromeBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,0,0,1" Padding="24,0">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
         <StackPanel VerticalAlignment="Center" Spacing="2">
-          <TextBlock Text="RatioForge" FontSize="21" FontWeight="Bold" Foreground="#F4F7F8" />
-          <TextBlock Text="Tracker session console" FontSize="11" Foreground="#84909B" />
+          <TextBlock Text="RatioForge" FontSize="21" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}" />
+          <TextBlock Text="Tracker session console" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" />
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
           <Button Content="Help" Padding="12,7">
@@ -18,12 +18,15 @@
               <MenuFlyout>
                 <MenuItem Header="GitHub repository" Click="Repository_Click" />
                 <MenuItem Header="Create an issue" Click="CreateIssue_Click" />
+                <MenuItem Header="Check for updates" Click="CheckForUpdates_Click" />
+                <MenuItem Header="Latest release" Click="LatestRelease_Click" />
               </MenuFlyout>
             </Button.Flyout>
           </Button>
           <Button Content="Settings" Click="Settings_Click" Padding="12,7" />
-          <Border CornerRadius="4" Background="#20332F" Padding="9,5" VerticalAlignment="Center">
-            <TextBlock x:Name="PlatformText" Foreground="#66D5BE" FontSize="11" FontWeight="SemiBold" />
+          <Button x:Name="UpdateButton" Content="Update available" Click="LatestRelease_Click" IsVisible="False" Padding="10,7" />
+          <Border CornerRadius="4" Background="{DynamicResource PlatformBackgroundBrush}" Padding="9,5" VerticalAlignment="Center">
+            <TextBlock x:Name="PlatformText" Foreground="{DynamicResource AccentTextBrush}" FontSize="11" FontWeight="SemiBold" />
           </Border>
         </StackPanel>
       </Grid>
@@ -65,7 +68,7 @@
               <TextBlock Classes="section-title" Text="Identity and network" />
               <TextBlock Classes="label" Text="Emulated client" />
               <ComboBox x:Name="ClientCombo" SelectionChanged="ClientCombo_SelectionChanged" />
-              <TextBlock x:Name="UserAgentText" FontSize="11" Foreground="#7F8B95" TextWrapping="Wrap" />
+              <TextBlock x:Name="UserAgentText" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" />
               <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                 <StackPanel>
                   <TextBlock Classes="label" Text="Client key" />
@@ -136,7 +139,7 @@
             </StackPanel>
             <StackPanel Grid.Column="2">
               <TextBlock Classes="label" Text="NEXT ANNOUNCE" />
-              <TextBlock x:Name="CountdownText" Text="-" FontSize="24" FontWeight="SemiBold" Foreground="#66D5BE" />
+              <TextBlock x:Name="CountdownText" Text="-" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}" />
             </StackPanel>
           </Grid>
         </Border>
@@ -144,12 +147,12 @@
         <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
           <Button x:Name="StartButton" Classes="primary" Content="Start session" Click="Start_Click" />
           <Button x:Name="StopButton" Grid.Column="1" Classes="danger" Content="Stop" Click="Stop_Click" IsEnabled="False" />
-          <TextBlock x:Name="StatusText" Grid.Column="2" Text="Ready" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="#AAB4BD" />
+          <TextBlock x:Name="StatusText" Grid.Column="2" Text="Ready" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{DynamicResource SecondaryTextBrush}" />
         </Grid>
 
         <Border Grid.Row="2" Classes="panel" Padding="0">
           <Grid RowDefinitions="46,*">
-            <Border BorderBrush="#2C343D" BorderThickness="0,0,0,1" Padding="16,0">
+            <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,0,0,1" Padding="16,0">
               <TextBlock Classes="section-title" Text="Activity" VerticalAlignment="Center" />
             </Border>
             <ListBox x:Name="ActivityList" Grid.Row="1" Margin="8" Background="Transparent" BorderThickness="0" FontFamily="Cascadia Mono,Consolas,monospace" FontSize="12" />
@@ -158,10 +161,10 @@
       </Grid>
     </Grid>
 
-    <Border Grid.Row="2" Background="#151A1F" BorderBrush="#2C343D" BorderThickness="0,1,0,0" Padding="20,0">
+    <Border Grid.Row="2" Background="{DynamicResource ChromeBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0" Padding="20,0">
       <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Text="No payload data is transferred" FontSize="11" Foreground="#77838E" VerticalAlignment="Center" />
-        <TextBlock x:Name="VersionText" Grid.Column="1" FontSize="11" Foreground="#77838E" VerticalAlignment="Center" />
+        <TextBlock Text="No payload data is transferred" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center" />
+        <TextBlock x:Name="VersionText" Grid.Column="1" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center" />
       </Grid>
     </Border>
   </Grid>
