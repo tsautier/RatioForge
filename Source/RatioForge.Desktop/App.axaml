@@ -49,6 +49,7 @@
           <SolidColorBrush x:Key="SecondaryTextBrush" Color="#9CA8B3" />
           <SolidColorBrush x:Key="MutedTextBrush" Color="#77838E" />
           <SolidColorBrush x:Key="AccentTextBrush" Color="#66D5BE" />
+          <SolidColorBrush x:Key="DangerTextBrush" Color="#FF8A8A" />
           <SolidColorBrush x:Key="PlatformBackgroundBrush" Color="#20332F" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
@@ -60,6 +61,7 @@
           <SolidColorBrush x:Key="SecondaryTextBrush" Color="#52616B" />
           <SolidColorBrush x:Key="MutedTextBrush" Color="#687780" />
           <SolidColorBrush x:Key="AccentTextBrush" Color="#087D69" />
+          <SolidColorBrush x:Key="DangerTextBrush" Color="#A52F2F" />
           <SolidColorBrush x:Key="PlatformBackgroundBrush" Color="#DCEFEA" />
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>

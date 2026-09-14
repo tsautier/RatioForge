@@ -4,11 +4,13 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
+using System.Text;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using Avalonia.Styling;
 using Avalonia.Threading;
 
 public partial class MainWindow : Window
@@ -92,15 +94,7 @@ public partial class MainWindow : Window
 
     private void ApplySettings()
     {
-        if (Application.Current is not null)
-        {
-            Application.Current.RequestedThemeVariant = settings.ThemeMode switch
-            {
-                ApplicationThemeMode.Dark => ThemeVariant.Dark,
-                ApplicationThemeMode.Light => ThemeVariant.Light,
-                _ => ThemeVariant.Default,
-            };
-        }
+        ApplicationThemeManager.Apply(settings.ThemeMode);
 
         ClientCombo.SelectedItem = ClientProfileCatalog.All.FirstOrDefault(
             profile => profile.Name == settings.DefaultProfileName) ?? ClientProfileCatalog.Default;
@@ -143,6 +137,7 @@ public partial class MainWindow : Window
             StopActiveSession();
             torrent = loadedTorrent;
             ResetTransferCounters();
+            ResetSessionButton.IsEnabled = true;
             TorrentPathBox.Text = torrent.FilePath;
             TorrentNameText.Text = torrent.Name;
             TorrentSizeText.Text = FormatBytes(torrent.TotalSize);
@@ -163,13 +158,18 @@ public partial class MainWindow : Window
     {
         if (ClientCombo.SelectedItem is ClientProfile profile)
         {
-            UserAgentText.Text = profile.UserAgent;
-            PeerCountBox.Value = profile.DefaultPeerCount;
-            clientIdentity = profile.CreateIdentity();
-            ClientKeyBox.Text = clientIdentity.Key;
-            PeerIdBox.Text = clientIdentity.PeerId;
-            AddDebug($"Client identity generated: client={profile.Name}; key={clientIdentity.Key}; peer_id={clientIdentity.PeerId}");
+            GenerateClientIdentity(profile);
         }
+    }
+
+    private void GenerateClientIdentity(ClientProfile profile)
+    {
+        UserAgentText.Text = profile.UserAgent;
+        PeerCountBox.Value = profile.DefaultPeerCount;
+        clientIdentity = profile.CreateIdentity();
+        ClientKeyBox.Text = clientIdentity.Key;
+        PeerIdBox.Text = clientIdentity.PeerId;
+        AddDebug($"Client identity generated: client={profile.Name}; key={clientIdentity.Key}; peer_id={clientIdentity.PeerId}");
     }
 
     private async void Start_Click(object? sender, RoutedEventArgs e)
@@ -199,11 +199,52 @@ public partial class MainWindow : Window
         DownloadedText.Text = FormatBytes(downloaded);
         StartButton.IsEnabled = false;
         StopButton.IsEnabled = true;
+        ResetSessionButton.IsEnabled = true;
         lastCounterUpdate = DateTimeOffset.UtcNow;
         timer.Start();
         AddActivity("Session started.");
         AddDebug($"Session started: info_hash={torrent.InfoHash}; key={clientIdentity.Key}; peer_id={clientIdentity.PeerId}");
         await SendAnnounceAsync("started", sessionCancellation.Token);
+    }
+
+    private async void ManualUpdate_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sessionCancellation is null || announcing)
+        {
+            return;
+        }
+
+        UpdateTransferCounters(DateTimeOffset.UtcNow);
+        AddActivity($"Sending manual update: uploaded {FormatBytes(uploaded)}, downloaded {FormatBytes(downloaded)}.");
+        AddDebug($"Manual tracker update requested: uploaded={uploaded}; downloaded={downloaded}");
+        await SendAnnounceAsync(string.Empty, sessionCancellation.Token);
+    }
+
+    private async void ResetSession_Click(object? sender, RoutedEventArgs e)
+    {
+        if (announcing)
+        {
+            return;
+        }
+
+        if (sessionCancellation is not null)
+        {
+            UpdateTransferCounters(DateTimeOffset.UtcNow);
+            timer.Stop();
+            await SendAnnounceAsync("stopped", sessionCancellation.Token);
+            StopActiveSession();
+        }
+
+        if (ClientCombo.SelectedItem is ClientProfile profile)
+        {
+            GenerateClientIdentity(profile);
+        }
+
+        ResetTransferCounters();
+        ResetSessionButton.IsEnabled = torrent is not null;
+        StatusText.Text = "Session reset";
+        AddActivity("Session reset. Counters and client identity were regenerated.");
+        AddDebug("Session reset.");
     }
 
     private async void Stop_Click(object? sender, RoutedEventArgs e)
@@ -230,6 +271,8 @@ public partial class MainWindow : Window
         sessionCancellation = null;
         StartButton.IsEnabled = true;
         StopButton.IsEnabled = false;
+        ManualUpdateButton.IsEnabled = false;
+        ResetSessionButton.IsEnabled = torrent is not null;
         CountdownText.Text = "-";
         nextAnnounce = default;
     }
@@ -254,7 +297,18 @@ public partial class MainWindow : Window
         }
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
-        double seconds = (now - lastCounterUpdate).TotalSeconds;
+        UpdateTransferCounters(now);
+        TimeSpan remaining = nextAnnounce - now;
+        CountdownText.Text = remaining > TimeSpan.Zero ? remaining.ToString(@"mm\:ss") : "now";
+        if (remaining <= TimeSpan.Zero && !announcing && sessionCancellation is not null)
+        {
+            await SendAnnounceAsync(string.Empty, sessionCancellation.Token);
+        }
+    }
+
+    private void UpdateTransferCounters(DateTimeOffset now)
+    {
+        double seconds = Math.Max(0, (now - lastCounterUpdate).TotalSeconds);
         lastCounterUpdate = now;
         uploaded += (long)((double)(UploadRateBox.Value ?? 0) * 1024d * seconds);
         downloaded += (long)((double)(DownloadRateBox.Value ?? 0) * 1024d * seconds);
@@ -265,12 +319,6 @@ public partial class MainWindow : Window
 
         UploadedText.Text = FormatBytes(uploaded);
         DownloadedText.Text = FormatBytes(downloaded);
-        TimeSpan remaining = nextAnnounce - now;
-        CountdownText.Text = remaining > TimeSpan.Zero ? remaining.ToString(@"mm\:ss") : "now";
-        if (remaining <= TimeSpan.Zero && !announcing && sessionCancellation is not null)
-        {
-            await SendAnnounceAsync(string.Empty, sessionCancellation.Token);
-        }
     }
 
     private async Task SendAnnounceAsync(string eventName, CancellationToken cancellationToken)
@@ -282,6 +330,8 @@ public partial class MainWindow : Window
 
         int announceGeneration = sessionGeneration;
         announcing = true;
+        ManualUpdateButton.IsEnabled = false;
+        ResetSessionButton.IsEnabled = false;
         StatusText.Text = "Contacting tracker...";
         try
         {
@@ -335,6 +385,8 @@ public partial class MainWindow : Window
             if (announceGeneration == sessionGeneration)
             {
                 announcing = false;
+                ManualUpdateButton.IsEnabled = sessionCancellation is not null;
+                ResetSessionButton.IsEnabled = torrent is not null;
             }
         }
     }
@@ -346,7 +398,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        activity.Insert(0, $"{DateTime.Now:HH:mm:ss}  {message}");
+        activity.Insert(0, $"{DateTime.Now:HH:mm:ss}  {SensitiveDataRedactor.Redact(message)}");
         while (activity.Count > 200)
         {
             activity.RemoveAt(activity.Count - 1);
@@ -360,7 +412,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        activity.Insert(0, $"{DateTime.Now:HH:mm:ss}  DEBUG {message}");
+        string safeMessage = SensitiveDataRedactor.Redact(message);
+        activity.Insert(0, $"{DateTime.Now:HH:mm:ss}  DEBUG {safeMessage}");
         while (activity.Count > 200)
         {
             activity.RemoveAt(activity.Count - 1);
@@ -368,12 +421,75 @@ public partial class MainWindow : Window
 
         try
         {
-            DebugLogStore.Append(message);
+            DebugLogStore.Append(safeMessage);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             StatusText.Text = "Could not write debug log";
         }
+    }
+
+    private void OpenDebugLog_Click(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string path = DebugLogStore.EnsureFile();
+            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+            AddDebug("Opened debug log: " + path);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            StatusText.Text = "Could not open debug log";
+            AddActivity("ERROR " + exception.Message, force: true);
+        }
+    }
+
+    private async void CopyDiagnostics_Click(object? sender, RoutedEventArgs e)
+    {
+        var report = new StringBuilder()
+            .AppendLine("RatioForge diagnostics")
+            .AppendLine($"Version: {currentVersion}")
+            .AppendLine($"Generated (UTC): {DateTimeOffset.UtcNow:O}")
+            .AppendLine($"OS: {RuntimeInformation.OSDescription}")
+            .AppendLine($"Architecture: process={RuntimeInformation.ProcessArchitecture}; OS={RuntimeInformation.OSArchitecture}")
+            .AppendLine($"Runtime: {RuntimeInformation.FrameworkDescription}")
+            .AppendLine($"Theme: {settings.ThemeMode}")
+            .AppendLine($"Activity log: {settings.EnableActivityLog}; debug log: {settings.EnableDebugLog}")
+            .AppendLine($"Client: {(ClientCombo.SelectedItem as ClientProfile)?.Name ?? "none"}")
+            .AppendLine($"Source address: {AddressCombo.SelectedItem ?? "Automatic (IPv4 / IPv6)"}")
+            .AppendLine($"Tracker: {SensitiveDataRedactor.RedactUrl(torrent?.Tracker)}")
+            .AppendLine($"Session active: {sessionCancellation is not null}")
+            .AppendLine($"Uploaded: {FormatBytes(uploaded)}; downloaded: {FormatBytes(downloaded)}")
+            .AppendLine("Recent activity:");
+        foreach (string entry in activity.Take(25))
+        {
+            report.AppendLine(SensitiveDataRedactor.Redact(entry));
+        }
+
+        try
+        {
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+            if (clipboard is null)
+            {
+                throw new InvalidOperationException("Clipboard is unavailable.");
+            }
+
+            await clipboard.SetTextAsync(report.ToString());
+            StatusText.Text = "Diagnostics copied";
+            AddActivity("Diagnostics copied to clipboard.");
+            AddDebug("Diagnostics copied to clipboard.");
+        }
+        catch (Exception exception)
+        {
+            StatusText.Text = "Could not copy diagnostics";
+            AddActivity("ERROR " + exception.Message, force: true);
+        }
+    }
+
+    private void ClearActivity_Click(object? sender, RoutedEventArgs e)
+    {
+        activity.Clear();
+        AddActivity("Activity cleared.");
     }
 
     private void OpenWebPage(string url)

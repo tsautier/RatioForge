@@ -1,5 +1,6 @@
 namespace RatioForge.Desktop;
 
+using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
@@ -55,6 +56,11 @@ public partial class SettingsWindow : Window
         ProxyUsernameBox.Text = settings.ProxyUsername;
         ProxyPasswordBox.Text = settings.ProxyPassword;
         UpdateProxyFields();
+        MinimumUploadBox.ValueChanged += RandomBounds_ValueChanged;
+        MaximumUploadBox.ValueChanged += RandomBounds_ValueChanged;
+        MinimumDownloadBox.ValueChanged += RandomBounds_ValueChanged;
+        MaximumDownloadBox.ValueChanged += RandomBounds_ValueChanged;
+        ValidateRandomBounds();
     }
 
     private void ProxyModeCombo_SelectionChanged(object? sender, SelectionChangedEventArgs e) => UpdateProxyFields();
@@ -70,6 +76,11 @@ public partial class SettingsWindow : Window
 
     private void Save_Click(object? sender, RoutedEventArgs e)
     {
+        if (!ValidateRandomBounds())
+        {
+            return;
+        }
+
         settings.ThemeMode = ThemeModeCombo.SelectedItem is ApplicationThemeMode themeMode
             ? themeMode
             : ApplicationThemeMode.System;
@@ -101,4 +112,37 @@ public partial class SettingsWindow : Window
     }
 
     private void Cancel_Click(object? sender, RoutedEventArgs e) => Close(false);
+
+    private void RandomBounds_ValueChanged(object? sender, NumericUpDownValueChangedEventArgs e) =>
+        ValidateRandomBounds();
+
+    private bool ValidateRandomBounds()
+    {
+        bool uploadValid = (MinimumUploadBox.Value ?? 0) <= (MaximumUploadBox.Value ?? 0);
+        bool downloadValid = (MinimumDownloadBox.Value ?? 0) <= (MaximumDownloadBox.Value ?? 0);
+        ValidationText.Text = !uploadValid && !downloadValid
+            ? "Upload and download minimums must not exceed their maximums."
+            : !uploadValid
+                ? "Upload minimum must not exceed its maximum."
+                : !downloadValid
+                    ? "Download minimum must not exceed its maximum."
+                    : string.Empty;
+        ValidationText.IsVisible = !uploadValid || !downloadValid;
+        SaveButton.IsEnabled = uploadValid && downloadValid;
+        return uploadValid && downloadValid;
+    }
+
+    private void OpenDebugLog_Click(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string path = DebugLogStore.EnsureFile();
+            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            ValidationText.Text = "Could not open the debug log: " + exception.Message;
+            ValidationText.IsVisible = true;
+        }
+    }
 }

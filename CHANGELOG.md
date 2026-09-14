@@ -5,6 +5,21 @@ All notable changes to RatioForge will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-09-14
+
+### Added
+- **Manual tracker update:** Active sessions can immediately announce the current uploaded and downloaded statistics without restarting the tracker lifecycle.
+- **Session reset:** A dedicated action stops an active session, resets transfer and completion counters, and regenerates the client identity without reloading the torrent.
+- **Diagnostics:** Added commands to open the persistent debug log, copy a privacy-conscious diagnostic report, and clear the activity panel.
+- **UI regression coverage:** Added portable Avalonia headless tests for startup counters, session actions, appearance modes, randomization validation, and update dialogs.
+
+### Changed
+- **Randomization validation:** Inverted minimum and maximum ranges now display an immediate validation error and disable saving.
+- **Roadmap:** Recorded the completed privacy, diagnostics, validation, reset, manual announce, and UI-test work in the Short Term section.
+
+### Security
+- **Secret redaction:** Tracker passkeys, URL credentials, API keys, tokens, client keys, peer IDs, info-hashes, and proxy credentials are removed from activity and persistent debug logs.
+
 ## [1.1.2] - 2026-09-14
 
 ### Added

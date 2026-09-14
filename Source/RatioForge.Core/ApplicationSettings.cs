@@ -108,6 +108,7 @@ public static class DebugLogStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
         string logPath = path ?? DefaultPath;
+        string safeMessage = SensitiveDataRedactor.Redact(message);
         string? directory = Path.GetDirectoryName(logPath);
         lock (SyncRoot)
         {
@@ -118,8 +119,28 @@ public static class DebugLogStore
 
             File.AppendAllText(
                 logPath,
-                $"{DateTimeOffset.Now:O} [DEBUG] {message}{Environment.NewLine}");
+                $"{DateTimeOffset.Now:O} [DEBUG] {safeMessage}{Environment.NewLine}");
         }
+    }
+
+    public static string EnsureFile(string? path = null)
+    {
+        string logPath = path ?? DefaultPath;
+        string? directory = Path.GetDirectoryName(logPath);
+        lock (SyncRoot)
+        {
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            if (!File.Exists(logPath))
+            {
+                File.WriteAllText(logPath, string.Empty);
+            }
+        }
+
+        return logPath;
     }
 }
 

@@ -21,6 +21,8 @@
 - **Current default identity**: qBittorrent 5.2.3, the latest stable release verified by the project
 - **Persistent settings**: Cross-platform session defaults, automatic/dark/light appearance, IPv4/IPv6 source selection, HTTP/SOCKS5 proxy, speed randomization, activity logging, and opt-in debug logs
 - **Release updates**: Automatic and manual checks against the latest published GitHub release
+- **Session controls**: Immediate manual tracker announces and a clean session reset without reloading the torrent
+- **Diagnostics**: Privacy-filtered activity/debug logs with open, copy, and clear actions
 - **Cross-platform**: Native desktop builds for Windows, Linux, and macOS
 - **Dual stack networking**: HTTP and HTTPS trackers over IPv4 or IPv6, with automatic routing or explicit local-address binding
 - **Modernized**: Rebuilt for .NET 10 and Avalonia UI
@@ -78,11 +80,13 @@ dotnet test Source/RatioForge.sln
 
 For support, use the built-in Help menu to open the GitHub repository or create an issue.
 
-## What's New in 1.1.2 (RatioForge)
+## What's New in 1.1.3 (RatioForge)
 
-- **Correct startup state**: Uploaded and downloaded counters now remain at zero until a session starts
-- **Whole randomized rates**: Random upload and download speeds use integer KiB/s values
-- **Visible update results**: Manual checks show an explicit dialog and continue to write activity/debug logs
+- **Manual tracker updates**: Send current upload/download statistics immediately from an active session
+- **Clean session reset**: Stop the active tracker lifecycle, clear counters, and regenerate client identity without reopening the torrent
+- **Safer diagnostics**: Open the debug log, copy a filtered diagnostic report, clear activity, and automatically redact tracker credentials
+- **Immediate validation**: Invalid randomization ranges are shown before saving
+- **UI regression tests**: Startup state, themes, range validation, and update dialogs now run headlessly in CI
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.
 The source evidence for current emulation signatures is recorded in the [2026 client profile audit](docs/client-profile-audit-2026-08-11.md).

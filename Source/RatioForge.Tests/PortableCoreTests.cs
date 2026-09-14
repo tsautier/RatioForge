@@ -205,6 +205,68 @@ public class PortableCoreTests
         }
     }
 
+    [Test]
+    public void SensitiveDataRedactorShouldRemoveTrackerCredentials()
+    {
+        const string passkey = "0123456789abcdef0123456789abcdef";
+        string message = $"tracker=https://user:password@tracker.example/{passkey}/announce?passkey={passkey}&mode=compact token:another-secret key=ABC123 peer_id=-qB5230-session info_hash=deadbeef";
+
+        string redacted = SensitiveDataRedactor.Redact(message);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(redacted, Does.Not.Contain(passkey));
+            Assert.That(redacted, Does.Not.Contain("another-secret"));
+            Assert.That(redacted, Does.Not.Contain("user:password"));
+            Assert.That(redacted, Does.Not.Contain("ABC123"));
+            Assert.That(redacted, Does.Not.Contain("-qB5230-session"));
+            Assert.That(redacted, Does.Not.Contain("deadbeef"));
+            Assert.That(redacted, Does.Contain("REDACTED"));
+            Assert.That(redacted, Does.Contain("mode=compact"));
+        });
+    }
+
+    [Test]
+    public void DebugLogShouldNeverPersistTrackerSecrets()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"ratioforge-redaction-{Guid.NewGuid():N}.log");
+        const string secret = "abcdef0123456789abcdef0123456789";
+        try
+        {
+            DebugLogStore.Append($"announce=https://tracker.example/{secret}/announce?token={secret}", path);
+
+            string contents = File.ReadAllText(path);
+            Assert.That(contents, Does.Not.Contain(secret));
+            Assert.That(contents, Does.Contain("REDACTED"));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Test]
+    public void DebugLogShouldCreateAnEmptyFileOnDemand()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"ratioforge-empty-{Guid.NewGuid():N}.log");
+        try
+        {
+            Assert.That(DebugLogStore.EnsureFile(path), Is.EqualTo(path));
+            Assert.That(File.Exists(path), Is.True);
+            Assert.That(new FileInfo(path).Length, Is.Zero);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
     [TestCase(TrackerProxyMode.None)]
     [TestCase(TrackerProxyMode.System)]
     [TestCase(TrackerProxyMode.Http)]
@@ -275,6 +337,33 @@ public class PortableCoreTests
         {
             Assert.That(handler.RequestUri, Does.Contain("key=fixed-key"));
             Assert.That(handler.RequestUri, Does.Contain("peer_id=-qB5230-fixedPeerId"));
+        });
+    }
+
+    [Test]
+    public async Task ManualAnnounceShouldSendCurrentCountersWithoutLifecycleEvent()
+    {
+        var handler = new StubHandler("d8:intervali900e5:peers0:e");
+        using var client = new TrackerAnnounceClient(new HttpClient(handler));
+        TorrentDocument torrent = TorrentDocument.Load(FixturePath("single-file.torrent")) with
+        {
+            Tracker = "https://tracker.example/announce",
+        };
+
+        await client.AnnounceAsync(new TrackerAnnounceOptions(
+            torrent,
+            ClientProfileCatalog.Default,
+            131072,
+            654320,
+            6881,
+            50,
+            string.Empty));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(handler.RequestUri, Does.Contain("uploaded=131072"));
+            Assert.That(handler.RequestUri, Does.Contain("downloaded=654320"));
+            Assert.That(handler.RequestUri, Does.Not.Contain("event="));
         });
     }
 

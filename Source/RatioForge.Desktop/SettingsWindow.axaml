@@ -39,7 +39,10 @@
             <CheckBox x:Name="ActivityLogCheck" Content="Enable activity log" />
             <CheckBox x:Name="DebugLogCheck" Content="Enable persistent debug logging" />
             <TextBlock Classes="label" Text="Debug log file" />
-            <TextBox x:Name="DebugLogPathBox" IsReadOnly="True" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+              <TextBox x:Name="DebugLogPathBox" IsReadOnly="True" />
+              <Button Grid.Column="1" Content="Open log" Click="OpenDebugLog_Click" Padding="12,7" />
+            </Grid>
           </StackPanel>
         </ScrollViewer>
       </TabItem>
@@ -108,10 +111,13 @@
     </TabControl>
 
     <Border Grid.Row="1" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0" Padding="18,12">
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-        <Button Content="Cancel" Click="Cancel_Click" Padding="16,8" />
-        <Button Classes="primary" Content="Save settings" Click="Save_Click" Padding="16,8" />
-      </StackPanel>
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <TextBlock x:Name="ValidationText" Foreground="{DynamicResource DangerTextBrush}" VerticalAlignment="Center" TextWrapping="Wrap" IsVisible="False" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+          <Button Content="Cancel" Click="Cancel_Click" Padding="16,8" />
+          <Button x:Name="SaveButton" Classes="primary" Content="Save settings" Click="Save_Click" Padding="16,8" />
+        </StackPanel>
+      </Grid>
     </Border>
   </Grid>
 </Window>

@@ -1,13 +1,15 @@
-# RatioForge 1.1.2
+# RatioForge 1.1.3
 
-RatioForge 1.1.2 corrects the initial session state and improves feedback for randomization and update checks.
+RatioForge 1.1.3 restores direct tracker updates and completes the current short-term reliability and diagnostics work.
 
-- Uploaded and downloaded values now reliably start at `0 B`, with no announce countdown before a session starts
-- The session timer starts only when the user starts a session and stops defensively while idle
-- Randomized upload and download rates are always whole KiB/s values
-- Randomization and session rate inputs display integer values
-- Manual update checks now show an explicit result dialog for current, available, and failed checks
-- Update results remain recorded in the activity and optional persistent debug logs
+- `Manual update` sends the active session's current uploaded and downloaded statistics to the tracker immediately
+- `Reset` stops an active tracker session, clears counters and completion, and regenerates the client identity without reloading the torrent
+- Debug log shortcuts are available from the main activity panel and Settings
+- `Copy diagnostics` creates a support report without torrent hashes, client keys, peer IDs, or unfiltered tracker credentials
+- Activity and persistent logs redact tracker passkeys, URL credentials, API keys, tokens, client keys, peer IDs, info-hashes, and proxy secrets
+- Activity can be cleared directly from the main window
+- Invalid random upload/download bounds are shown immediately and prevent saving
+- Portable Avalonia headless tests cover startup counters, session action availability, themes, range validation, and update dialogs
 - Native self-contained and Lite builds for Windows x64, Linux x64, macOS Intel, and macOS Apple Silicon
 - SHA256 verification files for every release package
 

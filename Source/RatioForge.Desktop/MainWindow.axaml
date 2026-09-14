@@ -144,16 +144,27 @@
           </Grid>
         </Border>
 
-        <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
-          <Button x:Name="StartButton" Classes="primary" Content="Start session" Click="Start_Click" />
-          <Button x:Name="StopButton" Grid.Column="1" Classes="danger" Content="Stop" Click="Stop_Click" IsEnabled="False" />
-          <TextBlock x:Name="StatusText" Grid.Column="2" Text="Ready" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{DynamicResource SecondaryTextBrush}" />
+        <Grid Grid.Row="1" RowDefinitions="Auto,Auto" RowSpacing="8">
+          <WrapPanel Orientation="Horizontal">
+            <Button x:Name="StartButton" Classes="primary" Content="Start session" Click="Start_Click" Margin="0,0,10,0" />
+            <Button x:Name="StopButton" Classes="danger" Content="Stop" Click="Stop_Click" IsEnabled="False" Margin="0,0,10,0" />
+            <Button x:Name="ManualUpdateButton" Content="Manual update" Click="ManualUpdate_Click" IsEnabled="False" Margin="0,0,10,0" />
+            <Button x:Name="ResetSessionButton" Content="Reset" Click="ResetSession_Click" IsEnabled="False" />
+          </WrapPanel>
+          <TextBlock x:Name="StatusText" Grid.Row="1" Text="Ready" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{DynamicResource SecondaryTextBrush}" />
         </Grid>
 
         <Border Grid.Row="2" Classes="panel" Padding="0">
           <Grid RowDefinitions="46,*">
             <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,0,0,1" Padding="16,0">
-              <TextBlock Classes="section-title" Text="Activity" VerticalAlignment="Center" />
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBlock Classes="section-title" Text="Activity" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                  <Button Content="Open log" Click="OpenDebugLog_Click" Padding="9,5" />
+                  <Button Content="Copy diagnostics" Click="CopyDiagnostics_Click" Padding="9,5" />
+                  <Button Content="Clear" Click="ClearActivity_Click" Padding="9,5" />
+                </StackPanel>
+              </Grid>
             </Border>
             <ListBox x:Name="ActivityList" Grid.Row="1" Margin="8" Background="Transparent" BorderThickness="0" FontFamily="Cascadia Mono,Consolas,monospace" FontSize="12" />
           </Grid>

@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RatioForge.Core", "RatioFor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RatioForge.Desktop", "RatioForge.Desktop\RatioForge.Desktop.csproj", "{F5DA4966-C1D9-4E49-BEF1-86030527C204}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RatioForge.Desktop.Tests", "RatioForge.Desktop.Tests\RatioForge.Desktop.Tests.csproj", "{DF8647E8-D77D-4F59-BC73-651188BBEB36}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,18 @@ Global
 		{F5DA4966-C1D9-4E49-BEF1-86030527C204}.Release|x64.Build.0 = Release|Any CPU
 		{F5DA4966-C1D9-4E49-BEF1-86030527C204}.Release|x86.ActiveCfg = Release|Any CPU
 		{F5DA4966-C1D9-4E49-BEF1-86030527C204}.Release|x86.Build.0 = Release|Any CPU
+		{DF8647E8-D77D-4F59-BC73-651188BBEB36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF8647E8-D77D-4F59-BC73-651188BBEB36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF8647E8-D77D-4F59-BC73-651188BBEB36}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DF8647E8-D77D-4F59-BC73-651188BBEB36}.Debug|x64.Build.0 = Debug|Any CPU
+		{DF8647E8-D77D-4F59-BC73-651188BBEB36}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DF8647E8-D77D-4F59-BC73-651188BBEB36}.Debug|x86.Build.0 = Debug|Any CPU
+		{DF8647E8-D77D-4F59-BC73-651188BBEB36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF8647E8-D77D-4F59-BC73-651188BBEB36}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF8647E8-D77D-4F59-BC73-651188BBEB36}.Release|x64.ActiveCfg = Release|Any CPU
+		{DF8647E8-D77D-4F59-BC73-651188BBEB36}.Release|x64.Build.0 = Release|Any CPU
+		{DF8647E8-D77D-4F59-BC73-651188BBEB36}.Release|x86.ActiveCfg = Release|Any CPU
+		{DF8647E8-D77D-4F59-BC73-651188BBEB36}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
