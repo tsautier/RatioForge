@@ -1,0 +1,22 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="RatioForge.Desktop.UpdateCheckWindow"
+        Title="RatioForge Update"
+        Width="460" Height="220"
+        MinWidth="420" MinHeight="200"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <Grid RowDefinitions="*,Auto">
+    <StackPanel Margin="24" Spacing="12">
+      <TextBlock x:Name="DialogTitleText" Classes="section-title" FontSize="18" />
+      <TextBlock x:Name="DialogMessageText" TextWrapping="Wrap" />
+    </StackPanel>
+    <Border Grid.Row="1" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0" Padding="18,12">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button x:Name="OpenReleaseButton" Content="Open release" Click="OpenRelease_Click" Padding="14,8" />
+        <Button Classes="primary" Content="OK" Click="Close_Click" Padding="18,8" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

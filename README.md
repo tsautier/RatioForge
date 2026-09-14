@@ -78,11 +78,11 @@ dotnet test Source/RatioForge.sln
 
 For support, use the built-in Help menu to open the GitHub repository or create an issue.
 
-## What's New in 1.1.1 (RatioForge)
+## What's New in 1.1.2 (RatioForge)
 
-- **Clean sessions**: Loading another torrent now resets transferred amounts, completion, and announce timing to zero
-- **Appearance**: Follow the operating system theme automatically or select Dark or Light manually in Settings
-- **Release updates**: RatioForge checks the latest published GitHub release at startup and on demand from Help
+- **Correct startup state**: Uploaded and downloaded counters now remain at zero until a session starts
+- **Whole randomized rates**: Random upload and download speeds use integer KiB/s values
+- **Visible update results**: Manual checks show an explicit dialog and continue to write activity/debug logs
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.
 The source evidence for current emulation signatures is recorded in the [2026 client profile audit](docs/client-profile-audit-2026-08-11.md).

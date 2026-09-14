@@ -1,11 +1,13 @@
-# RatioForge 1.1.1
+# RatioForge 1.1.2
 
-RatioForge 1.1.1 fixes session counter carry-over and adds appearance and update controls to the cross-platform desktop application.
+RatioForge 1.1.2 corrects the initial session state and improves feedback for randomization and update checks.
 
-- Loading a new torrent stops the previous session and resets uploaded/downloaded counters, completion, and announce timing
-- Appearance setting with System, Dark, and Light modes
-- Automatic startup check against the latest published GitHub release
-- Manual update check and latest-release shortcut in the Help menu
+- Uploaded and downloaded values now reliably start at `0 B`, with no announce countdown before a session starts
+- The session timer starts only when the user starts a session and stops defensively while idle
+- Randomized upload and download rates are always whole KiB/s values
+- Randomization and session rate inputs display integer values
+- Manual update checks now show an explicit result dialog for current, available, and failed checks
+- Update results remain recorded in the activity and optional persistent debug logs
 - Native self-contained and Lite builds for Windows x64, Linux x64, macOS Intel, and macOS Apple Silicon
 - SHA256 verification files for every release package
 

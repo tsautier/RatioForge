@@ -19,11 +19,11 @@
             <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
               <StackPanel>
                 <TextBlock Classes="label" Text="Upload KiB/s" />
-                <NumericUpDown x:Name="UploadRateBox" Minimum="0" Maximum="1048576" />
+                <NumericUpDown x:Name="UploadRateBox" Minimum="0" Maximum="1048576" FormatString="0" Increment="1" />
               </StackPanel>
               <StackPanel Grid.Column="1">
                 <TextBlock Classes="label" Text="Download KiB/s" />
-                <NumericUpDown x:Name="DownloadRateBox" Minimum="0" Maximum="1048576" />
+                <NumericUpDown x:Name="DownloadRateBox" Minimum="0" Maximum="1048576" FormatString="0" Increment="1" />
               </StackPanel>
             </Grid>
             <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
@@ -82,11 +82,11 @@
             <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
               <StackPanel>
                 <TextBlock Classes="label" Text="Minimum KiB/s" />
-                <NumericUpDown x:Name="MinimumUploadBox" Minimum="0" Maximum="1048576" />
+                <NumericUpDown x:Name="MinimumUploadBox" Minimum="0" Maximum="1048576" FormatString="0" Increment="1" />
               </StackPanel>
               <StackPanel Grid.Column="1">
                 <TextBlock Classes="label" Text="Maximum KiB/s" />
-                <NumericUpDown x:Name="MaximumUploadBox" Minimum="0" Maximum="1048576" />
+                <NumericUpDown x:Name="MaximumUploadBox" Minimum="0" Maximum="1048576" FormatString="0" Increment="1" />
               </StackPanel>
             </Grid>
             <Separator Margin="0,8" />
@@ -95,11 +95,11 @@
             <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
               <StackPanel>
                 <TextBlock Classes="label" Text="Minimum KiB/s" />
-                <NumericUpDown x:Name="MinimumDownloadBox" Minimum="0" Maximum="1048576" />
+                <NumericUpDown x:Name="MinimumDownloadBox" Minimum="0" Maximum="1048576" FormatString="0" Increment="1" />
               </StackPanel>
               <StackPanel Grid.Column="1">
                 <TextBlock Classes="label" Text="Maximum KiB/s" />
-                <NumericUpDown x:Name="MaximumDownloadBox" Minimum="0" Maximum="1048576" />
+                <NumericUpDown x:Name="MaximumDownloadBox" Minimum="0" Maximum="1048576" FormatString="0" Increment="1" />
               </StackPanel>
             </Grid>
           </StackPanel>

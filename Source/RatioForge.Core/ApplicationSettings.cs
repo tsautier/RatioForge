@@ -86,10 +86,10 @@ public sealed class ApplicationSettings
         UploadRateKib = Math.Clamp(UploadRateKib, 0, 1_048_576);
         DownloadRateKib = Math.Clamp(DownloadRateKib, 0, 1_048_576);
         IntervalSeconds = Math.Clamp(IntervalSeconds, 30, 86400);
-        MinimumUploadRateKib = Math.Max(0, MinimumUploadRateKib);
-        MaximumUploadRateKib = Math.Max(MinimumUploadRateKib, MaximumUploadRateKib);
-        MinimumDownloadRateKib = Math.Max(0, MinimumDownloadRateKib);
-        MaximumDownloadRateKib = Math.Max(MinimumDownloadRateKib, MaximumDownloadRateKib);
+        MinimumUploadRateKib = decimal.Round(Math.Clamp(MinimumUploadRateKib, 0, 1_048_576), 0, MidpointRounding.AwayFromZero);
+        MaximumUploadRateKib = decimal.Round(Math.Clamp(MaximumUploadRateKib, MinimumUploadRateKib, 1_048_576), 0, MidpointRounding.AwayFromZero);
+        MinimumDownloadRateKib = decimal.Round(Math.Clamp(MinimumDownloadRateKib, 0, 1_048_576), 0, MidpointRounding.AwayFromZero);
+        MaximumDownloadRateKib = decimal.Round(Math.Clamp(MaximumDownloadRateKib, MinimumDownloadRateKib, 1_048_576), 0, MidpointRounding.AwayFromZero);
         ProxyPort = Math.Clamp(ProxyPort, 1, 65535);
     }
 }

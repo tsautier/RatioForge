@@ -104,11 +104,11 @@
               <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                 <StackPanel>
                   <TextBlock Classes="label" Text="Upload KiB/s" />
-                  <NumericUpDown x:Name="UploadRateBox" Minimum="0" Maximum="1048576" Value="60" />
+                  <NumericUpDown x:Name="UploadRateBox" Minimum="0" Maximum="1048576" Value="60" FormatString="0" Increment="1" />
                 </StackPanel>
                 <StackPanel Grid.Column="1">
                   <TextBlock Classes="label" Text="Download KiB/s" />
-                  <NumericUpDown x:Name="DownloadRateBox" Minimum="0" Maximum="1048576" Value="30" />
+                  <NumericUpDown x:Name="DownloadRateBox" Minimum="0" Maximum="1048576" Value="30" FormatString="0" Increment="1" />
                 </StackPanel>
               </Grid>
               <Grid ColumnDefinitions="*,*" ColumnSpacing="10">

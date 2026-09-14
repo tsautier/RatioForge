@@ -145,6 +145,43 @@ public class PortableCoreTests
     }
 
     [Test]
+    public void RateRandomizerShouldOnlyReturnWholeValuesInsideBounds()
+    {
+        decimal[] values = Enumerable.Range(0, 100)
+            .Select(_ => RateRandomizer.NextInteger(21.25m, 24.75m))
+            .ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(values, Is.All.GreaterThanOrEqualTo(22m));
+            Assert.That(values, Is.All.LessThanOrEqualTo(24m));
+            Assert.That(values.All(value => decimal.Truncate(value) == value), Is.True);
+        });
+    }
+
+    [Test]
+    public void ApplicationSettingsShouldNormalizeRandomRateBoundsToWholeSupportedValues()
+    {
+        var settings = new ApplicationSettings
+        {
+            MinimumUploadRateKib = 21.6m,
+            MaximumUploadRateKib = 2_000_000m,
+            MinimumDownloadRateKib = -10m,
+            MaximumDownloadRateKib = 20.4m,
+        };
+
+        settings.Normalize();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(settings.MinimumUploadRateKib, Is.EqualTo(22m));
+            Assert.That(settings.MaximumUploadRateKib, Is.EqualTo(1_048_576m));
+            Assert.That(settings.MinimumDownloadRateKib, Is.Zero);
+            Assert.That(settings.MaximumDownloadRateKib, Is.EqualTo(20m));
+        });
+    }
+
+    [Test]
     public void DebugLogShouldAppendTimestampedEntry()
     {
         string path = Path.Combine(Path.GetTempPath(), $"ratioforge-debug-{Guid.NewGuid():N}.log");

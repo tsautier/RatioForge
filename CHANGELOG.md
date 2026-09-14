@@ -5,6 +5,18 @@ All notable changes to RatioForge will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-09-14
+
+### Added
+- **Update feedback:** Manual update checks now display a result dialog while retaining activity and debug log entries.
+
+### Changed
+- **Randomized rates:** Random upload and download rates are now whole KiB/s values, and related numeric inputs display integers.
+
+### Fixed
+- **Startup counters:** The session timer now remains stopped until a session starts, preventing elapsed-time calculations from the default timestamp and guaranteeing zero transfer counters on launch.
+- **Idle timer:** Timer ticks without an active session stop immediately as a defensive safeguard.
+
 ## [1.1.1] - 2026-09-14
 
 ### Added
@@ -273,6 +285,7 @@ For complete historical changelog, see [HISTORY.TXT](HISTORY.TXT)
 
 ---
 
+[1.1.2]: https://github.com/tsautier/RatioForge/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/tsautier/RatioForge/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/tsautier/RatioForge/releases/tag/v1.1.0
 [1.0.14]: https://github.com/tsautier/RatioForge/releases/tag/v1.0.14

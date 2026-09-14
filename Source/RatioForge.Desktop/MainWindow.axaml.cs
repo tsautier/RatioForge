@@ -43,7 +43,8 @@ public partial class MainWindow : Window
         PlatformText.Text = $".NET 10 / {GetPlatformName()}";
         currentVersion = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
         VersionText.Text = "v" + currentVersion;
-        timer = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Normal, Timer_Tick);
+        timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        timer.Tick += Timer_Tick;
         ResetTransferCounters();
         AddActivity("Ready. Open a torrent file to configure a session.");
         AddDebug($"Application started on {Environment.OSVersion}; log file: {DebugLogStore.DefaultPath}");
@@ -183,11 +184,15 @@ public partial class MainWindow : Window
         sessionCancellation = new CancellationTokenSource();
         if (settings.RandomizeUpload)
         {
-            UploadRateBox.Value = RandomRate(settings.MinimumUploadRateKib, settings.MaximumUploadRateKib);
+            UploadRateBox.Value = RateRandomizer.NextInteger(
+                settings.MinimumUploadRateKib,
+                settings.MaximumUploadRateKib);
         }
         if (settings.RandomizeDownload)
         {
-            DownloadRateBox.Value = RandomRate(settings.MinimumDownloadRateKib, settings.MaximumDownloadRateKib);
+            DownloadRateBox.Value = RateRandomizer.NextInteger(
+                settings.MinimumDownloadRateKib,
+                settings.MaximumDownloadRateKib);
         }
 
         downloaded = (long)(torrent.TotalSize * ((double)(CompletedBox.Value ?? 0) / 100d));
@@ -242,6 +247,12 @@ public partial class MainWindow : Window
 
     private async void Timer_Tick(object? sender, EventArgs e)
     {
+        if (sessionCancellation is null)
+        {
+            timer.Stop();
+            return;
+        }
+
         DateTimeOffset now = DateTimeOffset.UtcNow;
         double seconds = (now - lastCounterUpdate).TotalSeconds;
         lastCounterUpdate = now;
@@ -390,20 +401,30 @@ public partial class MainWindow : Window
         {
             ReleaseUpdateResult result = await updateChecker.CheckAsync(currentVersion);
             availableReleaseUrl = result.ReleaseUrl;
+            AddDebug($"Update check: current={result.CurrentVersion}; latest={result.LatestVersion}; available={result.IsUpdateAvailable}");
             if (result.IsUpdateAvailable)
             {
                 UpdateButton.Content = $"v{result.LatestVersion.ToString(3)} available";
                 UpdateButton.IsVisible = true;
                 StatusText.Text = "Update available";
                 AddActivity($"Update v{result.LatestVersion.ToString(3)} is available.");
+                if (manual)
+                {
+                    await ShowUpdateDialogAsync(
+                        "Update available",
+                        $"RatioForge v{result.LatestVersion.ToString(3)} is available. You are running v{currentVersion}.",
+                        offerReleaseLink: true);
+                }
             }
             else if (manual)
             {
                 StatusText.Text = "RatioForge is up to date";
                 AddActivity($"Version {currentVersion} is up to date.");
+                await ShowUpdateDialogAsync(
+                    "RatioForge is up to date",
+                    $"You are running the latest published version: v{currentVersion}.",
+                    offerReleaseLink: false);
             }
-
-            AddDebug($"Update check: current={result.CurrentVersion}; latest={result.LatestVersion}; available={result.IsUpdateAvailable}");
         }
         catch (Exception exception)
         {
@@ -412,7 +433,21 @@ public partial class MainWindow : Window
             {
                 StatusText.Text = "Could not check for updates";
                 AddActivity("ERROR Could not check GitHub for the latest release.", force: true);
+                await ShowUpdateDialogAsync(
+                    "Update check failed",
+                    "RatioForge could not contact GitHub. Check your connection and try again.",
+                    offerReleaseLink: false);
             }
+        }
+    }
+
+    private async Task ShowUpdateDialogAsync(string title, string message, bool offerReleaseLink)
+    {
+        var dialog = new UpdateCheckWindow(title, message, offerReleaseLink);
+        bool openRelease = await dialog.ShowDialog<bool>(this);
+        if (openRelease)
+        {
+            OpenWebPage(availableReleaseUrl);
         }
     }
 
@@ -421,16 +456,6 @@ public partial class MainWindow : Window
         string value = string.Join(", ", addresses.Where(address =>
             IPAddress.TryParse(address, out IPAddress? parsed) && parsed.AddressFamily == family));
         return string.IsNullOrEmpty(value) ? "Not available" : value;
-    }
-
-    private static decimal RandomRate(decimal minimum, decimal maximum)
-    {
-        if (maximum <= minimum)
-        {
-            return minimum;
-        }
-
-        return minimum + ((maximum - minimum) * (decimal)Random.Shared.NextDouble());
     }
 
     private static string FormatBytes(long bytes)
