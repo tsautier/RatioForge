@@ -32,6 +32,7 @@ public partial class MainWindow : Window
     private DateTimeOffset sessionStarted;
     private long uploaded;
     private long downloaded;
+    private long initialCompletedBytes;
     private bool announcing;
     private bool completionAnnounced;
     private bool closingInProgress;
@@ -54,6 +55,9 @@ public partial class MainWindow : Window
         ResetTransferCounters();
         AddActivity("Ready. Open a torrent file to configure a session.");
         AddDebug($"Application started on {Environment.OSVersion}; log file: {DebugLogStore.DefaultPath}");
+        AddDebug($"Runtime: framework={RuntimeInformation.FrameworkDescription}; process_architecture={RuntimeInformation.ProcessArchitecture}; os_architecture={RuntimeInformation.OSArchitecture}; processors={Environment.ProcessorCount}");
+        AddDebug($"Network: ipv6_supported={Socket.OSSupportsIPv6}; local_addresses={string.Join(',', NetworkAddressCatalog.GetLocalAddresses())}");
+        AddDebug($"Settings: client={settings.DefaultProfileName}; source_address={(string.IsNullOrEmpty(settings.LocalAddress) ? "automatic" : settings.LocalAddress)}; port={settings.Port}; peers={settings.PeerCount}; interval={settings.IntervalSeconds}; proxy={settings.ProxyMode}; random_upload={settings.RandomizeUpload}; random_download={settings.RandomizeDownload}");
         Opened += async (_, _) => await CheckForUpdatesAsync(manual: false);
         Closing += MainWindow_Closing;
         Closed += (_, _) =>
@@ -151,7 +155,7 @@ public partial class MainWindow : Window
             TrackerText.Text = torrent.Tracker;
             InfoHashBox.Text = torrent.InfoHash;
             AddActivity($"Loaded {torrent.Name} ({torrent.FileCount} file(s), {FormatBytes(torrent.TotalSize)}).");
-            AddDebug($"Torrent loaded: name={torrent.Name}; info_hash={torrent.InfoHash}; tracker={torrent.Tracker}");
+            AddDebug($"Torrent loaded: name={torrent.Name}; files={torrent.FileCount}; size_bytes={torrent.TotalSize}; info_hash={torrent.InfoHash}; tracker={torrent.Tracker}");
             StatusText.Text = "Torrent loaded";
         }
         catch (Exception exception)
@@ -202,8 +206,9 @@ public partial class MainWindow : Window
                 settings.MaximumDownloadRateKib);
         }
 
-        downloaded = (long)(torrent.TotalSize * ((double)(CompletedBox.Value ?? 0) / 100d));
-        completionAnnounced = downloaded >= torrent.TotalSize;
+        initialCompletedBytes = (long)(torrent.TotalSize * ((double)(CompletedBox.Value ?? 0) / 100d));
+        downloaded = 0;
+        completionAnnounced = initialCompletedBytes >= torrent.TotalSize;
         ResetSessionButton.IsEnabled = true;
         sessionStarted = DateTimeOffset.UtcNow;
         lastCounterUpdate = sessionStarted;
@@ -216,7 +221,7 @@ public partial class MainWindow : Window
             AddActivity($"Automatic stop enabled: {DescribeStopCondition()}.");
         }
 
-        AddDebug($"Session started: info_hash={torrent.InfoHash}; key={clientIdentity.Key}; peer_id={clientIdentity.PeerId}");
+        AddDebug($"Session started: client={((ClientProfile)ClientCombo.SelectedItem).Name}; user_agent={((ClientProfile)ClientCombo.SelectedItem).UserAgent}; completion={CompletedBox.Value:0.##}; initial_completed_bytes={initialCompletedBytes}; upload_kib={UploadRateBox.Value:0}; download_kib={DownloadRateBox.Value:0}; port={PortBox.Value:0}; peers={PeerCountBox.Value:0}; info_hash={torrent.InfoHash}; key={clientIdentity.Key}; peer_id={clientIdentity.PeerId}");
         TrackerAnnounceResult? result = await SendAnnounceAsync("started", sessionCancellation.Token);
         await HandleTrackerRejectionAsync(result);
     }
@@ -330,6 +335,7 @@ public partial class MainWindow : Window
     {
         uploaded = 0;
         downloaded = 0;
+        initialCompletedBytes = 0;
         CompletedBox.Value = 0;
         UploadedText.Text = FormatBytes(0);
         DownloadedText.Text = FormatBytes(0);
@@ -384,18 +390,18 @@ public partial class MainWindow : Window
 
     private bool UpdateTransferCounters(DateTimeOffset now)
     {
-        bool wasComplete = torrent is not null && downloaded >= torrent.TotalSize;
+        bool wasComplete = torrent is not null && initialCompletedBytes + downloaded >= torrent.TotalSize;
         double seconds = Math.Max(0, (now - lastCounterUpdate).TotalSeconds);
         lastCounterUpdate = now;
         uploaded += (long)((double)(UploadRateBox.Value ?? 0) * 1024d * seconds);
         downloaded += (long)((double)(DownloadRateBox.Value ?? 0) * 1024d * seconds);
         if (torrent is not null)
         {
-            downloaded = Math.Min(downloaded, torrent.TotalSize);
+            downloaded = Math.Min(downloaded, Math.Max(0, torrent.TotalSize - initialCompletedBytes));
         }
 
         UpdateTransferDisplay(now);
-        bool isComplete = torrent is not null && downloaded >= torrent.TotalSize;
+        bool isComplete = torrent is not null && initialCompletedBytes + downloaded >= torrent.TotalSize;
         return !wasComplete && isComplete && !completionAnnounced;
     }
 
@@ -404,7 +410,7 @@ public partial class MainWindow : Window
         UploadedText.Text = FormatBytes(uploaded);
         DownloadedText.Text = FormatBytes(downloaded);
         double completion = torrent is { TotalSize: > 0 }
-            ? Math.Clamp(downloaded * 100d / torrent.TotalSize, 0, 100)
+            ? Math.Clamp((initialCompletedBytes + downloaded) * 100d / torrent.TotalSize, 0, 100)
             : 0;
         CompletedBox.Value = (decimal)completion;
         CompletionText.Text = $"Completed {completion:0.##}%";
@@ -437,8 +443,9 @@ public partial class MainWindow : Window
                 eventName,
                 AddressCombo.SelectedIndex > 0 ? AddressCombo.SelectedItem?.ToString() ?? string.Empty : string.Empty,
                 settings.ToProxyOptions(),
-                clientIdentity);
-            AddDebug($"Announce sending: event={eventName}; tracker={torrent.Tracker}; local_ip={options.LocalIp}; uploaded={uploaded}; downloaded={downloaded}");
+                clientIdentity,
+                GetRemainingBytes());
+            AddDebug($"Announce sending: event={eventName}; tracker={torrent.Tracker}; local_ip={options.LocalIp}; uploaded={uploaded}; downloaded={downloaded}; left={options.Left}");
             TrackerAnnounceResult result = await announceClient.AnnounceAsync(options, cancellationToken);
             if (announceGeneration != sessionGeneration)
             {
@@ -448,6 +455,8 @@ public partial class MainWindow : Window
             int interval = result.IntervalSeconds ?? Decimal.ToInt32(IntervalBox.Value ?? 1800);
             interval = Math.Max(30, interval);
             nextAnnounce = DateTimeOffset.UtcNow.AddSeconds(interval);
+            AddDebug($"HTTP response: status={FormatOptional(result.HttpStatusCode)}; protocol={result.HttpVersion}; server={EmptyAsUnknown(result.Server)}; content_type={EmptyAsUnknown(result.ContentType)}; content_length={FormatOptional(result.ContentLength)}; latency_ms={result.ElapsedMilliseconds}; final_url={SensitiveDataRedactor.RedactUrl(result.FinalUrl)}");
+            AddDebug($"Tracker statistics: complete={FormatOptional(result.Complete)}; incomplete={FormatOptional(result.Incomplete)}; ipv4_peers={FormatOptional(result.Ipv4Peers)}; ipv6_peers={FormatOptional(result.Ipv6Peers)}; interval={FormatOptional(result.IntervalSeconds)}; min_interval={FormatOptional(result.MinimumIntervalSeconds)}");
             StatusText.Text = result.IsSuccess ? "Tracker accepted announce" : "Tracker rejected announce";
             AddActivity($"{(result.IsSuccess ? "OK" : "ERROR")} {result.Message} Next announce in {interval}s.");
             AddDebug($"Announce response: success={result.IsSuccess}; interval={interval}; message={result.Message}");
@@ -473,7 +482,7 @@ public partial class MainWindow : Window
             nextAnnounce = DateTimeOffset.UtcNow.AddSeconds(retry);
             StatusText.Text = "Tracker request failed";
             AddActivity("ERROR " + exception.Message);
-            AddDebug("Announce failed: " + exception);
+            AddDebug($"Announce failed: type={exception.GetType().FullName}; message={exception.Message}; details={exception}");
             return null;
         }
         finally
@@ -542,16 +551,24 @@ public partial class MainWindow : Window
 
     private void AddDebug(string message)
     {
-        if (!settings.EnableDebugLog)
+        if (!settings.EnableActivityLog && !settings.EnableDebugLog)
         {
             return;
         }
 
         string safeMessage = SensitiveDataRedactor.Redact(message);
-        activity.Insert(0, $"{DateTime.Now:HH:mm:ss}  DEBUG {safeMessage}");
-        while (activity.Count > 200)
+        if (settings.EnableActivityLog)
         {
-            activity.RemoveAt(activity.Count - 1);
+            activity.Insert(0, $"{DateTime.Now:HH:mm:ss}  DEBUG {safeMessage}");
+            while (activity.Count > 200)
+            {
+                activity.RemoveAt(activity.Count - 1);
+            }
+        }
+
+        if (!settings.EnableDebugLog)
+        {
+            return;
         }
 
         try
@@ -598,7 +615,7 @@ public partial class MainWindow : Window
             .AppendLine("Recent activity:");
         foreach (string entry in activity.Take(25))
         {
-            report.AppendLine(SensitiveDataRedactor.Redact(entry));
+            report.AppendLine(SensitiveDataRedactor.RedactDiagnostic(entry, torrent?.Name));
         }
 
         try
@@ -725,6 +742,14 @@ public partial class MainWindow : Window
 
     private static string FormatElapsed(TimeSpan elapsed) =>
         $"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}";
+
+    private static string FormatOptional<T>(T? value) where T : struct => value?.ToString() ?? "not-provided";
+
+    private static string EmptyAsUnknown(string value) => string.IsNullOrWhiteSpace(value) ? "not-provided" : value;
+
+    private long GetRemainingBytes() => torrent is null
+        ? 0
+        : Math.Max(0, torrent.TotalSize - initialCompletedBytes - downloaded);
 
     private static string GetPlatformName() =>
         OperatingSystem.IsWindows() ? "Windows" :

@@ -23,7 +23,7 @@ namespace RatioForge.Tests
                 Assert.That(result, Does.Contain("info_hash=%00%11%223DUfw%88%99%aa%bb%cc%dd%ee%ff%10%200%40"));
                 Assert.That(result, Does.Contain("uploaded=16384"));
                 Assert.That(result, Does.Contain("downloaded=32"));
-                Assert.That(result, Does.Contain("left=968"));
+                Assert.That(result, Does.Contain("left=953"));
                 Assert.That(result, Does.Contain("numwant=200"));
                 Assert.That(result, Does.Contain("event=started"));
             }));

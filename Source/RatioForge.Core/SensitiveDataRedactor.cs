@@ -82,6 +82,15 @@ public static class SensitiveDataRedactor
         return builder.Uri.AbsoluteUri;
     }
 
+    /// <summary>Redacts diagnostics and removes the loaded torrent name when one is known.</summary>
+    public static string RedactDiagnostic(string? text, string? torrentName)
+    {
+        string redacted = Redact(text);
+        return string.IsNullOrWhiteSpace(torrentName)
+            ? redacted
+            : redacted.Replace(torrentName, "[torrent name redacted]", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static string RedactMatchedUrl(string matchedUrl)
     {
         string suffix = string.Empty;

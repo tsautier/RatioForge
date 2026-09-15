@@ -17,6 +17,7 @@ Completed through 2026-09-15.
 - [x] **Done - Input feedback:** Randomization ranges are restricted to whole KiB/s values and invalid minimum/maximum combinations are shown before saving.
 - [x] **Done - UI regression tests:** Portable Avalonia headless coverage verifies empty startup counters, session-action defaults, appearance modes, validation feedback, and update dialogs.
 - [x] **Done - Session lifecycle parity:** Active sessions keep a stable identity, report live completion/ratio/time, send completion and stop lifecycle events, and support automatic stop thresholds.
+- [x] **Done - Legacy completion accounting:** Initial completion controls the tracker `left` value independently from bytes downloaded during the active session.
 
 ## Medium Term - 1.2.x
 

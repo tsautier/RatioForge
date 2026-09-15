@@ -1,6 +1,7 @@
 namespace RatioForge;
 
 using System.Globalization;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -17,7 +18,8 @@ public sealed record TrackerAnnounceOptions(
     string Event = "started",
     string LocalIp = "",
     TrackerProxyOptions? Proxy = null,
-    ClientIdentity? Identity = null);
+    ClientIdentity? Identity = null,
+    long? Left = null);
 
 public enum TrackerProxyMode
 {
@@ -40,7 +42,19 @@ public sealed record TrackerAnnounceResult(
     bool IsSuccess,
     string Message,
     int? IntervalSeconds,
-    string RequestUrl);
+    string RequestUrl,
+    int? HttpStatusCode = null,
+    string HttpVersion = "",
+    long ElapsedMilliseconds = 0,
+    string Server = "",
+    string ContentType = "",
+    long? ContentLength = null,
+    string FinalUrl = "",
+    int? Complete = null,
+    int? Incomplete = null,
+    int? MinimumIntervalSeconds = null,
+    int? Ipv4Peers = null,
+    int? Ipv6Peers = null);
 
 /// <summary>Sends HTTP and HTTPS tracker announce requests.</summary>
 public sealed class TrackerAnnounceClient : IDisposable
@@ -69,7 +83,12 @@ public sealed class TrackerAnnounceClient : IDisposable
         IPAddress? localAddress = NetworkAddressCatalog.ParseOptional(options.LocalIp);
         TorrentClient client = options.Profile.CreateClient();
         ClientIdentity identity = options.Identity ?? new ClientIdentity(client.Key, client.PeerID);
-        long left = Math.Max(0, options.Torrent.TotalSize - options.Downloaded);
+        long left = options.Left ?? Math.Max(0, options.Torrent.TotalSize - options.Downloaded);
+        if (left is < 0 || left > options.Torrent.TotalSize)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "Left must be between zero and the torrent size.");
+        }
+
         var info = new TorrentInfo(options.Uploaded, options.Downloaded)
         {
             tracker = options.Torrent.Tracker,
@@ -98,34 +117,99 @@ public sealed class TrackerAnnounceClient : IDisposable
             ? CreateHttpClient(localAddress, proxy: options.Proxy)
             : null;
         HttpClient sender = injectedHttpClient ?? ownedClient!;
+        long requestStarted = Stopwatch.GetTimestamp();
         using HttpResponseMessage response = await sender.SendAsync(
             request,
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
+        long elapsedMilliseconds = (long)Stopwatch.GetElapsedTime(requestStarted).TotalMilliseconds;
+        int statusCode = (int)response.StatusCode;
+        string httpVersion = $"HTTP/{response.Version}";
+        string server = response.Headers.Server.ToString();
+        string contentType = response.Content.Headers.ContentType?.ToString() ?? string.Empty;
+        long? contentLength = response.Content.Headers.ContentLength;
+        string finalUrl = response.RequestMessage?.RequestUri?.AbsoluteUri ?? requestUrl;
+        if (!response.IsSuccessStatusCode)
+        {
+            return new TrackerAnnounceResult(
+                false,
+                $"HTTP {statusCode} {response.ReasonPhrase}".Trim(),
+                null,
+                requestUrl,
+                statusCode,
+                httpVersion,
+                elapsedMilliseconds,
+                server,
+                contentType,
+                contentLength,
+                finalUrl);
+        }
+
         await using Stream body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         IBEncodeValue value = BEncode.Parse(body);
         if (value is not ValueDictionary dictionary)
         {
-            return new TrackerAnnounceResult(false, "Invalid tracker response.", null, requestUrl);
+            return new TrackerAnnounceResult(
+                false,
+                "Invalid tracker response.",
+                null,
+                requestUrl,
+                statusCode,
+                httpVersion,
+                elapsedMilliseconds,
+                server,
+                contentType,
+                contentLength,
+                finalUrl);
         }
 
+        int? interval = ReadOptionalInt(dictionary, "interval");
+        int? complete = ReadOptionalInt(dictionary, "complete");
+        int? incomplete = ReadOptionalInt(dictionary, "incomplete");
+        int? minimumInterval = ReadOptionalInt(dictionary, "min interval");
+        int? ipv4Peers = ReadPeerCount(dictionary, "peers", 6);
+        int? ipv6Peers = ReadPeerCount(dictionary, "peers6", 18);
         if (dictionary.Contains("failure reason"))
         {
             return new TrackerAnnounceResult(
                 false,
                 BEncode.String(dictionary["failure reason"]) ?? "Tracker rejected the announce.",
-                null,
-                requestUrl);
+                interval,
+                requestUrl,
+                statusCode,
+                httpVersion,
+                elapsedMilliseconds,
+                server,
+                contentType,
+                contentLength,
+                finalUrl,
+                complete,
+                incomplete,
+                minimumInterval,
+                ipv4Peers,
+                ipv6Peers);
         }
 
-        int? interval = dictionary.Contains("interval") && dictionary["interval"] is ValueNumber number
-            ? checked((int)number.Integer)
-            : null;
         string message = dictionary.Contains("warning message")
             ? BEncode.String(dictionary["warning message"]) ?? "Tracker returned a warning."
             : "Announce accepted.";
-        return new TrackerAnnounceResult(true, message, interval, requestUrl);
+        return new TrackerAnnounceResult(
+            true,
+            message,
+            interval,
+            requestUrl,
+            statusCode,
+            httpVersion,
+            elapsedMilliseconds,
+            server,
+            contentType,
+            contentLength,
+            finalUrl,
+            complete,
+            incomplete,
+            minimumInterval,
+            ipv4Peers,
+            ipv6Peers);
     }
 
     public void Dispose()
@@ -201,4 +285,17 @@ public sealed class TrackerAnnounceClient : IDisposable
         handler.UseProxy = true;
         handler.Proxy = proxy;
     }
+
+    private static int? ReadOptionalInt(ValueDictionary dictionary, string key) =>
+        dictionary.Contains(key) && dictionary[key] is ValueNumber number
+            ? checked((int)number.Integer)
+            : null;
+
+    private static int? ReadPeerCount(ValueDictionary dictionary, string key, int compactPeerSize) =>
+        dictionary.Contains(key) ? dictionary[key] switch
+        {
+            ValueString compact => compact.Length / compactPeerSize,
+            ValueList list => list.Values.Count,
+            _ => null,
+        } : null;
 }

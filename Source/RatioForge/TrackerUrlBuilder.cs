@@ -19,9 +19,7 @@ namespace RatioForge
             string downloaded = torrentInfo.downloaded > 0
                 ? RoundByDenominator(torrentInfo.downloaded, 0x10).ToString()
                 : "0";
-            long left = torrentInfo.left > 0
-                ? Math.Max(0, torrentInfo.totalsize - long.Parse(downloaded))
-                : torrentInfo.left;
+            long left = Math.Max(0, torrentInfo.left);
             string numberOfPeers = torrentInfo.numberOfPeers == "0" && !eventType.Contains("stopped", StringComparison.OrdinalIgnoreCase)
                 ? "200"
                 : torrentInfo.numberOfPeers;

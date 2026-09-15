@@ -257,6 +257,23 @@ public class PortableCoreTests
     }
 
     [Test]
+    public void DiagnosticRedactorShouldRemoveTorrentName()
+    {
+        const string torrentName = "Private.Release.Name.mkv";
+
+        string redacted = SensitiveDataRedactor.RedactDiagnostic(
+            $"Loaded {torrentName}; tracker=https://tracker.example/0123456789abcdef0123456789abcdef/announce",
+            torrentName);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(redacted, Does.Not.Contain(torrentName));
+            Assert.That(redacted, Does.Contain("[torrent name redacted]"));
+            Assert.That(redacted, Does.Not.Contain("0123456789abcdef0123456789abcdef"));
+        });
+    }
+
+    [Test]
     public void DebugLogShouldNeverPersistTrackerSecrets()
     {
         string path = Path.Combine(Path.GetTempPath(), $"ratioforge-redaction-{Guid.NewGuid():N}.log");
@@ -323,7 +340,7 @@ public class PortableCoreTests
     [Test]
     public async Task AnnounceClientShouldParseSuccessfulTrackerResponse()
     {
-        var handler = new StubHandler("d8:intervali900e5:peers0:e");
+        var handler = new StubHandler("d8:completei12e10:incompletei3e8:intervali900e12:min intervali450e5:peers0:e");
         using var client = new TrackerAnnounceClient(new HttpClient(handler));
         TorrentDocument torrent = TorrentDocument.Load(FixturePath("single-file.torrent")) with
         {
@@ -338,6 +355,16 @@ public class PortableCoreTests
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.IntervalSeconds, Is.EqualTo(900));
+            Assert.That(result.MinimumIntervalSeconds, Is.EqualTo(450));
+            Assert.That(result.Complete, Is.EqualTo(12));
+            Assert.That(result.Incomplete, Is.EqualTo(3));
+            Assert.That(result.Ipv4Peers, Is.Zero);
+            Assert.That(result.Ipv6Peers, Is.Null);
+            Assert.That(result.HttpStatusCode, Is.EqualTo(200));
+            Assert.That(result.HttpVersion, Is.EqualTo("HTTP/1.1"));
+            Assert.That(result.Server, Is.EqualTo("test-cdn"));
+            Assert.That(result.ContentType, Is.EqualTo("application/octet-stream"));
+            Assert.That(result.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(0));
             Assert.That(handler.RequestUri, Does.StartWith("https://tracker.example/announce?"));
             Assert.That(handler.UserAgent, Is.EqualTo("qBittorrent/5.2.3"));
         });
@@ -371,6 +398,33 @@ public class PortableCoreTests
     }
 
     [Test]
+    public async Task AnnounceClientShouldReturnHttpFailureDetails()
+    {
+        var handler = new StubHandler("blocked", HttpStatusCode.Forbidden);
+        using var client = new TrackerAnnounceClient(new HttpClient(handler));
+        TorrentDocument torrent = TorrentDocument.Load(FixturePath("single-file.torrent")) with
+        {
+            Tracker = "https://tracker.example/announce",
+        };
+
+        TrackerAnnounceResult result = await client.AnnounceAsync(new TrackerAnnounceOptions(
+            torrent,
+            ClientProfileCatalog.Default,
+            0,
+            0,
+            6881,
+            50));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.HttpStatusCode, Is.EqualTo(403));
+            Assert.That(result.Message, Does.StartWith("HTTP 403"));
+            Assert.That(result.Server, Is.EqualTo("test-cdn"));
+        });
+    }
+
+    [Test]
     public async Task ManualAnnounceShouldSendCurrentCountersWithoutLifecycleEvent()
     {
         var handler = new StubHandler("d8:intervali900e5:peers0:e");
@@ -395,6 +449,53 @@ public class PortableCoreTests
             Assert.That(handler.RequestUri, Does.Contain("downloaded=654320"));
             Assert.That(handler.RequestUri, Does.Not.Contain("event="));
         });
+    }
+
+    [TestCase(0)]
+    [TestCase(6172)]
+    public async Task AnnounceClientShouldKeepInitialCompletionOutOfDownloadedCounter(long left)
+    {
+        var handler = new StubHandler("d8:intervali900e5:peers0:e");
+        using var client = new TrackerAnnounceClient(new HttpClient(handler));
+        TorrentDocument torrent = TorrentDocument.Load(FixturePath("single-file.torrent")) with
+        {
+            Tracker = "https://tracker.example/announce",
+        };
+
+        await client.AnnounceAsync(new TrackerAnnounceOptions(
+            torrent,
+            ClientProfileCatalog.Default,
+            0,
+            0,
+            6881,
+            50,
+            "started",
+            Left: left));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(handler.RequestUri, Does.Contain("downloaded=0"));
+            Assert.That(handler.RequestUri, Does.Contain($"left={left}"));
+        });
+    }
+
+    [Test]
+    public void AnnounceClientShouldRejectImpossibleRemainingByteCount()
+    {
+        using var client = new TrackerAnnounceClient(new HttpClient(new StubHandler("d8:intervali900ee")));
+        TorrentDocument torrent = TorrentDocument.Load(FixturePath("single-file.torrent"));
+        var options = new TrackerAnnounceOptions(
+            torrent,
+            ClientProfileCatalog.Default,
+            0,
+            0,
+            6881,
+            50,
+            Left: torrent.TotalSize + 1);
+
+        Assert.That(
+            async () => await client.AnnounceAsync(options),
+            Throws.TypeOf<ArgumentOutOfRangeException>());
     }
 
     [TestCase("started")]
@@ -648,7 +749,9 @@ public class PortableCoreTests
     private static string FixturePath(string fileName) =>
         Path.Combine(TestContext.CurrentContext.TestDirectory, "Fixtures", fileName);
 
-    private sealed class StubHandler(string response) : HttpMessageHandler
+    private sealed class StubHandler(
+        string response,
+        HttpStatusCode statusCode = HttpStatusCode.OK) : HttpMessageHandler
     {
         public string RequestUri { get; private set; }
 
@@ -660,10 +763,14 @@ public class PortableCoreTests
         {
             RequestUri = request.RequestUri?.ToString();
             UserAgent = request.Headers.UserAgent.ToString();
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            var message = new HttpResponseMessage(statusCode)
             {
+                Version = HttpVersion.Version11,
                 Content = new ByteArrayContent(Encoding.ASCII.GetBytes(response)),
-            });
+            };
+            message.Headers.Server.ParseAdd("test-cdn");
+            message.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+            return Task.FromResult(message);
         }
     }
 }

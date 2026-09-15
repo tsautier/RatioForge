@@ -80,13 +80,13 @@ dotnet test Source/RatioForge.sln
 
 For support, use the built-in Help menu to open the GitHub repository or create an issue.
 
-## What's New in 1.1.4 (RatioForge)
+## What's New in 1.1.5 (RatioForge)
 
-- **Live session state**: See completion, ratio, and elapsed time update with the simulated counters
-- **Automatic stopping**: Stop by elapsed time, uploaded/downloaded MiB, target ratio, or tracker rejection
-- **Complete lifecycle**: Send `completed` at 100% and attempt `stopped` on every clean session exit
-- **Stable identity**: Session-defining controls stay locked until the active session ends
-- **Settings recovery**: Restore all application settings to documented defaults in one action
+- **Legacy-compatible completion**: Initial completion controls `left` without inflating the session's downloaded counter
+- **Correct partial progress**: Simulated downloads advance from the selected initial percentage
+- **Verbose tracker diagnostics**: Debug logs include remaining bytes, HTTP/CDN metadata, latency, redirects, and tracker swarm statistics
+- **Useful activity panel**: Detailed diagnostics remain visible in the app even when persistent file logging is disabled
+- **Safer support reports**: Copied diagnostics mask the loaded torrent name
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.
 The source evidence for current emulation signatures is recorded in the [2026 client profile audit](docs/client-profile-audit-2026-08-11.md).

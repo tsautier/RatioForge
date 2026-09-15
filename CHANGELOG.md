@@ -5,6 +5,18 @@ All notable changes to RatioForge will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2026-09-15
+
+### Fixed
+- **Initial completion accounting:** The selected completion percentage now controls tracker `left` without being reported as data downloaded during the new session. A session started at 100% once again announces `downloaded=0&left=0`, matching the legacy behavior.
+- **Partial progress accounting:** Session downloads reduce the initial remaining byte count instead of being subtracted from the torrent's full size.
+- **Diagnostic privacy:** Copied diagnostics now mask the loaded torrent name in recent activity.
+
+### Changed
+- **Verbose tracker diagnostics:** Debug logs now record runtime and network context, session parameters, `uploaded/downloaded/left`, HTTP status and protocol, CDN/server, content metadata, latency, final redirected URL, tracker swarm statistics, and IPv4/IPv6 peer counts while retaining secret redaction and omitting peer addresses.
+- **In-app logging:** Detailed entries remain visible in Activity whenever activity logging is enabled; the persistent debug option now controls only writing the debug file to disk.
+- **Tests:** Added regression coverage for complete and partially complete initial states, invalid remaining byte counts, and torrent-name redaction.
+
 ## [1.1.4] - 2026-09-15
 
 ### Added

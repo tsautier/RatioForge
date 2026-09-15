@@ -11,6 +11,7 @@ public sealed class DesktopWindowTests
     public void MainWindowShouldStartWithEmptyCountersAndUnavailableSessionActions()
     {
         var window = new MainWindow();
+        IEnumerable<string> activity = window.FindControl<ListBox>("ActivityList")!.ItemsSource!.Cast<string>();
 
         Assert.Multiple(() =>
         {
@@ -22,6 +23,7 @@ public sealed class DesktopWindowTests
             Assert.That(window.FindControl<TextBlock>("ElapsedText")?.Text, Is.EqualTo("Elapsed 00:00:00"));
             Assert.That(window.FindControl<Button>("ManualUpdateButton")?.IsEnabled, Is.False);
             Assert.That(window.FindControl<Button>("ResetSessionButton")?.IsEnabled, Is.False);
+            Assert.That(activity.Any(entry => entry.Contains("DEBUG Application started", StringComparison.Ordinal)), Is.True);
         });
     }
 
