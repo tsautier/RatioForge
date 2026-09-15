@@ -66,6 +66,9 @@ public class PortableCoreTests
                 Port = 51413,
                 RandomizeUpload = true,
                 EnableDebugLog = true,
+                StopOnTrackerFailure = false,
+                StopCondition = SessionStopCondition.Ratio,
+                StopValue = 2.5m,
                 ProxyMode = TrackerProxyMode.Socks5,
                 ProxyHost = "proxy.example",
                 ProxyPort = 1080,
@@ -85,6 +88,9 @@ public class PortableCoreTests
                 Assert.That(actual.Port, Is.EqualTo(51413));
                 Assert.That(actual.RandomizeUpload, Is.True);
                 Assert.That(actual.EnableDebugLog, Is.True);
+                Assert.That(actual.StopOnTrackerFailure, Is.False);
+                Assert.That(actual.StopCondition, Is.EqualTo(SessionStopCondition.Ratio));
+                Assert.That(actual.StopValue, Is.EqualTo(2.5m));
                 Assert.That(actual.ProxyMode, Is.EqualTo(TrackerProxyMode.Socks5));
                 Assert.That(actual.ProxyHost, Is.EqualTo("proxy.example"));
                 Assert.That(actual.ProxyPassword, Is.Empty);
@@ -142,6 +148,30 @@ public class PortableCoreTests
             Assert.That(identity.Key, Is.Not.Empty);
             Assert.That(identity.PeerId, Is.Not.Empty);
         });
+    }
+
+    [TestCase(SessionStopCondition.Never, 1, 7200, 10485760, 1048576, false)]
+    [TestCase(SessionStopCondition.AfterDuration, 60, 60, 0, 0, true)]
+    [TestCase(SessionStopCondition.Uploaded, 10, 0, 10485760, 0, true)]
+    [TestCase(SessionStopCondition.Downloaded, 10, 0, 0, 10485760, true)]
+    [TestCase(SessionStopCondition.Ratio, 2, 0, 2097152, 1048576, true)]
+    [TestCase(SessionStopCondition.Ratio, 2, 0, 2097152, 0, false)]
+    public void SessionStopEvaluatorShouldApplyConfiguredThreshold(
+        SessionStopCondition condition,
+        decimal value,
+        double elapsedSeconds,
+        long uploadedBytes,
+        long downloadedBytes,
+        bool expected)
+    {
+        bool actual = SessionStopEvaluator.ShouldStop(
+            condition,
+            value,
+            TimeSpan.FromSeconds(elapsedSeconds),
+            uploadedBytes,
+            downloadedBytes);
+
+        Assert.That(actual, Is.EqualTo(expected));
     }
 
     [Test]
@@ -365,6 +395,30 @@ public class PortableCoreTests
             Assert.That(handler.RequestUri, Does.Contain("downloaded=654320"));
             Assert.That(handler.RequestUri, Does.Not.Contain("event="));
         });
+    }
+
+    [TestCase("started")]
+    [TestCase("completed")]
+    [TestCase("stopped")]
+    public async Task AnnounceClientShouldSendLifecycleEvent(string eventName)
+    {
+        var handler = new StubHandler("d8:intervali900e5:peers0:e");
+        using var client = new TrackerAnnounceClient(new HttpClient(handler));
+        TorrentDocument torrent = TorrentDocument.Load(FixturePath("single-file.torrent")) with
+        {
+            Tracker = "https://tracker.example/announce",
+        };
+
+        await client.AnnounceAsync(new TrackerAnnounceOptions(
+            torrent,
+            ClientProfileCatalog.Default,
+            0,
+            0,
+            6881,
+            50,
+            eventName));
+
+        Assert.That(handler.RequestUri, Does.Contain($"event={eventName}"));
     }
 
     [Test]

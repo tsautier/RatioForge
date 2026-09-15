@@ -1,15 +1,15 @@
-# RatioForge 1.1.3
+# RatioForge 1.1.4
 
-RatioForge 1.1.3 restores direct tracker updates and completes the current short-term reliability and diagnostics work.
+RatioForge 1.1.4 consolidates tracker-session lifecycle behavior and restores useful safeguards from earlier RatioForge versions.
 
-- `Manual update` sends the active session's current uploaded and downloaded statistics to the tracker immediately
-- `Reset` stops an active tracker session, clears counters and completion, and regenerates the client identity without reloading the torrent
-- Debug log shortcuts are available from the main activity panel and Settings
-- `Copy diagnostics` creates a support report without torrent hashes, client keys, peer IDs, or unfiltered tracker credentials
-- Activity and persistent logs redact tracker passkeys, URL credentials, API keys, tokens, client keys, peer IDs, info-hashes, and proxy secrets
-- Activity can be cleared directly from the main window
-- Invalid random upload/download bounds are shown immediately and prevent saving
-- Portable Avalonia headless tests cover startup counters, session action availability, themes, range validation, and update dialogs
+- Live completion, ratio, and elapsed-time indicators follow the simulated transfer counters
+- Automatic stopping supports elapsed seconds, uploaded MiB, downloaded MiB, and target ratio
+- Tracker rejection stops a session by default and can be disabled in Settings
+- Session-defining controls stay locked while a session is active, keeping tracker identity stable
+- A `completed` announce is sent when download progress reaches 100%
+- A final `stopped` announce is attempted on stop, reset, torrent replacement, automatic stop, and application exit
+- `Defaults` restores every setting to its documented initial value
+- Portable automated tests cover automatic-stop thresholds, persisted settings, and new UI defaults
 - Native self-contained and Lite builds for Windows x64, Linux x64, macOS Intel, and macOS Apple Silicon
 - SHA256 verification files for every release package
 

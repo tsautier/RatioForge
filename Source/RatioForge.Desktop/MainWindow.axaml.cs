@@ -29,9 +29,13 @@ public partial class MainWindow : Window
     private CancellationTokenSource? sessionCancellation;
     private DateTimeOffset lastCounterUpdate;
     private DateTimeOffset nextAnnounce;
+    private DateTimeOffset sessionStarted;
     private long uploaded;
     private long downloaded;
     private bool announcing;
+    private bool completionAnnounced;
+    private bool closingInProgress;
+    private bool allowClose;
     private int sessionGeneration;
     private string availableReleaseUrl = LatestReleaseUrl;
 
@@ -51,10 +55,9 @@ public partial class MainWindow : Window
         AddActivity("Ready. Open a torrent file to configure a session.");
         AddDebug($"Application started on {Environment.OSVersion}; log file: {DebugLogStore.DefaultPath}");
         Opened += async (_, _) => await CheckForUpdatesAsync(manual: false);
+        Closing += MainWindow_Closing;
         Closed += (_, _) =>
         {
-            sessionCancellation?.Cancel();
-            sessionCancellation?.Dispose();
             announceClient.Dispose();
         };
     }
@@ -134,7 +137,11 @@ public partial class MainWindow : Window
         try
         {
             TorrentDocument loadedTorrent = TorrentDocument.Load(files[0].Path.LocalPath);
-            StopActiveSession();
+            if (sessionCancellation is not null)
+            {
+                await EndSessionAsync("Session stopped", "Session stopped before loading another torrent.");
+            }
+
             torrent = loadedTorrent;
             ResetTransferCounters();
             ResetSessionButton.IsEnabled = true;
@@ -196,15 +203,22 @@ public partial class MainWindow : Window
         }
 
         downloaded = (long)(torrent.TotalSize * ((double)(CompletedBox.Value ?? 0) / 100d));
-        DownloadedText.Text = FormatBytes(downloaded);
-        StartButton.IsEnabled = false;
-        StopButton.IsEnabled = true;
+        completionAnnounced = downloaded >= torrent.TotalSize;
         ResetSessionButton.IsEnabled = true;
-        lastCounterUpdate = DateTimeOffset.UtcNow;
+        sessionStarted = DateTimeOffset.UtcNow;
+        lastCounterUpdate = sessionStarted;
+        UpdateTransferDisplay(sessionStarted);
+        SetSessionActive(true);
         timer.Start();
         AddActivity("Session started.");
+        if (settings.StopCondition != SessionStopCondition.Never)
+        {
+            AddActivity($"Automatic stop enabled: {DescribeStopCondition()}.");
+        }
+
         AddDebug($"Session started: info_hash={torrent.InfoHash}; key={clientIdentity.Key}; peer_id={clientIdentity.PeerId}");
-        await SendAnnounceAsync("started", sessionCancellation.Token);
+        TrackerAnnounceResult? result = await SendAnnounceAsync("started", sessionCancellation.Token);
+        await HandleTrackerRejectionAsync(result);
     }
 
     private async void ManualUpdate_Click(object? sender, RoutedEventArgs e)
@@ -214,25 +228,20 @@ public partial class MainWindow : Window
             return;
         }
 
-        UpdateTransferCounters(DateTimeOffset.UtcNow);
+        bool completed = UpdateTransferCounters(DateTimeOffset.UtcNow);
         AddActivity($"Sending manual update: uploaded {FormatBytes(uploaded)}, downloaded {FormatBytes(downloaded)}.");
         AddDebug($"Manual tracker update requested: uploaded={uploaded}; downloaded={downloaded}");
-        await SendAnnounceAsync(string.Empty, sessionCancellation.Token);
+        string eventName = completed ? "completed" : string.Empty;
+        completionAnnounced |= completed;
+        TrackerAnnounceResult? result = await SendAnnounceAsync(eventName, sessionCancellation.Token);
+        await HandleTrackerRejectionAsync(result);
     }
 
     private async void ResetSession_Click(object? sender, RoutedEventArgs e)
     {
-        if (announcing)
-        {
-            return;
-        }
-
         if (sessionCancellation is not null)
         {
-            UpdateTransferCounters(DateTimeOffset.UtcNow);
-            timer.Stop();
-            await SendAnnounceAsync("stopped", sessionCancellation.Token);
-            StopActiveSession();
+            await EndSessionAsync("Session reset", "Session stopped before reset.");
         }
 
         if (ClientCombo.SelectedItem is ClientProfile profile)
@@ -249,16 +258,7 @@ public partial class MainWindow : Window
 
     private async void Stop_Click(object? sender, RoutedEventArgs e)
     {
-        timer.Stop();
-        CancellationToken token = sessionCancellation?.Token ?? CancellationToken.None;
-        if (!token.IsCancellationRequested)
-        {
-            await SendAnnounceAsync("stopped", token);
-        }
-
-        StopActiveSession();
-        StatusText.Text = "Stopped";
-        AddActivity("Session stopped.");
+        await EndSessionAsync("Stopped", "Session stopped.");
     }
 
     private void StopActiveSession()
@@ -269,12 +269,61 @@ public partial class MainWindow : Window
         sessionCancellation?.Cancel();
         sessionCancellation?.Dispose();
         sessionCancellation = null;
-        StartButton.IsEnabled = true;
-        StopButton.IsEnabled = false;
-        ManualUpdateButton.IsEnabled = false;
-        ResetSessionButton.IsEnabled = torrent is not null;
+        SetSessionActive(false);
         CountdownText.Text = "-";
         nextAnnounce = default;
+    }
+
+    private void SetSessionActive(bool active)
+    {
+        StartButton.IsEnabled = !active;
+        StopButton.IsEnabled = active;
+        ManualUpdateButton.IsEnabled = active && !announcing;
+        ResetSessionButton.IsEnabled = torrent is not null && !announcing;
+        OpenTorrentButton.IsEnabled = !active;
+        SettingsButton.IsEnabled = !active;
+        ClientCombo.IsEnabled = !active;
+        AddressCombo.IsEnabled = !active;
+        PortBox.IsEnabled = !active;
+        PeerCountBox.IsEnabled = !active;
+        CompletedBox.IsEnabled = !active;
+        IntervalBox.IsEnabled = !active;
+    }
+
+    private async Task EndSessionAsync(string status, string activityMessage)
+    {
+        CancellationTokenSource? cancellation = sessionCancellation;
+        if (cancellation is null)
+        {
+            return;
+        }
+
+        timer.Stop();
+        cancellation.Cancel();
+        bool previousAnnounceFinished = await WaitForActiveAnnounceAsync();
+        if (!previousAnnounceFinished)
+        {
+            sessionGeneration++;
+            announcing = false;
+        }
+
+        using var stoppedTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        UpdateTransferCounters(DateTimeOffset.UtcNow);
+        await SendAnnounceAsync("stopped", stoppedTimeout.Token);
+        StopActiveSession();
+        StatusText.Text = status;
+        AddActivity(activityMessage);
+    }
+
+    private async Task<bool> WaitForActiveAnnounceAsync()
+    {
+        DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(2);
+        while (announcing && DateTimeOffset.UtcNow < deadline)
+        {
+            await Task.Delay(25);
+        }
+
+        return !announcing;
     }
 
     private void ResetTransferCounters()
@@ -285,6 +334,11 @@ public partial class MainWindow : Window
         UploadedText.Text = FormatBytes(0);
         DownloadedText.Text = FormatBytes(0);
         CountdownText.Text = "-";
+        RatioText.Text = "Ratio -";
+        CompletionText.Text = "Completed 0%";
+        ElapsedText.Text = "Elapsed 00:00:00";
+        completionAnnounced = false;
+        sessionStarted = default;
         nextAnnounce = default;
     }
 
@@ -297,17 +351,40 @@ public partial class MainWindow : Window
         }
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
-        UpdateTransferCounters(now);
+        bool completed = UpdateTransferCounters(now);
+        if (completed && !announcing && sessionCancellation is not null)
+        {
+            completionAnnounced = true;
+            TrackerAnnounceResult? completionResult = await SendAnnounceAsync("completed", sessionCancellation.Token);
+            if (await HandleTrackerRejectionAsync(completionResult))
+            {
+                return;
+            }
+        }
+
+        if (SessionStopEvaluator.ShouldStop(
+            settings.StopCondition,
+            settings.StopValue,
+            now - sessionStarted,
+            uploaded,
+            downloaded))
+        {
+            await EndSessionAsync("Stopped automatically", $"Session stopped automatically: {DescribeStopCondition()}.");
+            return;
+        }
+
         TimeSpan remaining = nextAnnounce - now;
         CountdownText.Text = remaining > TimeSpan.Zero ? remaining.ToString(@"mm\:ss") : "now";
         if (remaining <= TimeSpan.Zero && !announcing && sessionCancellation is not null)
         {
-            await SendAnnounceAsync(string.Empty, sessionCancellation.Token);
+            TrackerAnnounceResult? result = await SendAnnounceAsync(string.Empty, sessionCancellation.Token);
+            await HandleTrackerRejectionAsync(result);
         }
     }
 
-    private void UpdateTransferCounters(DateTimeOffset now)
+    private bool UpdateTransferCounters(DateTimeOffset now)
     {
+        bool wasComplete = torrent is not null && downloaded >= torrent.TotalSize;
         double seconds = Math.Max(0, (now - lastCounterUpdate).TotalSeconds);
         lastCounterUpdate = now;
         uploaded += (long)((double)(UploadRateBox.Value ?? 0) * 1024d * seconds);
@@ -317,15 +394,30 @@ public partial class MainWindow : Window
             downloaded = Math.Min(downloaded, torrent.TotalSize);
         }
 
-        UploadedText.Text = FormatBytes(uploaded);
-        DownloadedText.Text = FormatBytes(downloaded);
+        UpdateTransferDisplay(now);
+        bool isComplete = torrent is not null && downloaded >= torrent.TotalSize;
+        return !wasComplete && isComplete && !completionAnnounced;
     }
 
-    private async Task SendAnnounceAsync(string eventName, CancellationToken cancellationToken)
+    private void UpdateTransferDisplay(DateTimeOffset now)
+    {
+        UploadedText.Text = FormatBytes(uploaded);
+        DownloadedText.Text = FormatBytes(downloaded);
+        double completion = torrent is { TotalSize: > 0 }
+            ? Math.Clamp(downloaded * 100d / torrent.TotalSize, 0, 100)
+            : 0;
+        CompletedBox.Value = (decimal)completion;
+        CompletionText.Text = $"Completed {completion:0.##}%";
+        RatioText.Text = downloaded > 0 ? $"Ratio {uploaded / (double)downloaded:0.###}" : "Ratio -";
+        TimeSpan elapsed = sessionStarted == default ? TimeSpan.Zero : now - sessionStarted;
+        ElapsedText.Text = $"Elapsed {FormatElapsed(elapsed)}";
+    }
+
+    private async Task<TrackerAnnounceResult?> SendAnnounceAsync(string eventName, CancellationToken cancellationToken)
     {
         if (torrent is null || ClientCombo.SelectedItem is not ClientProfile profile || clientIdentity is null || announcing)
         {
-            return;
+            return null;
         }
 
         int announceGeneration = sessionGeneration;
@@ -350,7 +442,7 @@ public partial class MainWindow : Window
             TrackerAnnounceResult result = await announceClient.AnnounceAsync(options, cancellationToken);
             if (announceGeneration != sessionGeneration)
             {
-                return;
+                return null;
             }
 
             int interval = result.IntervalSeconds ?? Decimal.ToInt32(IntervalBox.Value ?? 1800);
@@ -359,6 +451,7 @@ public partial class MainWindow : Window
             StatusText.Text = result.IsSuccess ? "Tracker accepted announce" : "Tracker rejected announce";
             AddActivity($"{(result.IsSuccess ? "OK" : "ERROR")} {result.Message} Next announce in {interval}s.");
             AddDebug($"Announce response: success={result.IsSuccess}; interval={interval}; message={result.Message}");
+            return result;
         }
         catch (OperationCanceledException)
         {
@@ -366,12 +459,14 @@ public partial class MainWindow : Window
             {
                 StatusText.Text = "Cancelled";
             }
+
+            return null;
         }
         catch (Exception exception)
         {
             if (announceGeneration != sessionGeneration)
             {
-                return;
+                return null;
             }
 
             int retry = Math.Max(30, Decimal.ToInt32(IntervalBox.Value ?? 1800));
@@ -379,16 +474,56 @@ public partial class MainWindow : Window
             StatusText.Text = "Tracker request failed";
             AddActivity("ERROR " + exception.Message);
             AddDebug("Announce failed: " + exception);
+            return null;
         }
         finally
         {
             if (announceGeneration == sessionGeneration)
             {
                 announcing = false;
-                ManualUpdateButton.IsEnabled = sessionCancellation is not null;
-                ResetSessionButton.IsEnabled = torrent is not null;
+                ManualUpdateButton.IsEnabled = sessionCancellation is { IsCancellationRequested: false };
+                ResetSessionButton.IsEnabled = torrent is not null && !announcing;
             }
         }
+    }
+
+    private async Task<bool> HandleTrackerRejectionAsync(TrackerAnnounceResult? result)
+    {
+        if (result is not { IsSuccess: false } || !settings.StopOnTrackerFailure || sessionCancellation is null)
+        {
+            return false;
+        }
+
+        await EndSessionAsync("Stopped after tracker rejection", "Session stopped because the tracker rejected the announce.");
+        return true;
+    }
+
+    private string DescribeStopCondition() => settings.StopCondition switch
+    {
+        SessionStopCondition.AfterDuration => $"after {settings.StopValue:0.##} seconds",
+        SessionStopCondition.Uploaded => $"after uploading {settings.StopValue:0.##} MiB",
+        SessionStopCondition.Downloaded => $"after downloading {settings.StopValue:0.##} MiB",
+        SessionStopCondition.Ratio => $"after reaching ratio {settings.StopValue:0.##}",
+        _ => "never",
+    };
+
+    private async void MainWindow_Closing(object? sender, WindowClosingEventArgs e)
+    {
+        if (allowClose || sessionCancellation is null)
+        {
+            return;
+        }
+
+        e.Cancel = true;
+        if (closingInProgress)
+        {
+            return;
+        }
+
+        closingInProgress = true;
+        await EndSessionAsync("Closing", "Session stopped before application exit.");
+        allowClose = true;
+        Close();
     }
 
     private void AddActivity(string message, bool force = false)
@@ -587,6 +722,9 @@ public partial class MainWindow : Window
 
         return $"{value:0.##} {units[unit]}";
     }
+
+    private static string FormatElapsed(TimeSpan elapsed) =>
+        $"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}";
 
     private static string GetPlatformName() =>
         OperatingSystem.IsWindows() ? "Windows" :

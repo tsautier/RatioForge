@@ -7,6 +7,14 @@ using Avalonia.Interactivity;
 public partial class SettingsWindow : Window
 {
     private const string AutomaticAddress = "Automatic (IPv4 / IPv6)";
+    private static readonly StopConditionOption[] StopConditionOptions =
+    [
+        new(SessionStopCondition.Never, "Never", string.Empty),
+        new(SessionStopCondition.AfterDuration, "After a duration", "Seconds"),
+        new(SessionStopCondition.Uploaded, "After uploaded volume", "MiB"),
+        new(SessionStopCondition.Downloaded, "After downloaded volume", "MiB"),
+        new(SessionStopCondition.Ratio, "After reaching a ratio", "Ratio"),
+    ];
     private readonly ApplicationSettings settings;
 
     public SettingsWindow()
@@ -42,6 +50,11 @@ public partial class SettingsWindow : Window
         IntervalBox.Value = settings.IntervalSeconds;
         ActivityLogCheck.IsChecked = settings.EnableActivityLog;
         DebugLogCheck.IsChecked = settings.EnableDebugLog;
+        StopOnTrackerFailureCheck.IsChecked = settings.StopOnTrackerFailure;
+        StopConditionCombo.ItemsSource = StopConditionOptions;
+        StopConditionCombo.SelectedItem = StopConditionOptions.First(
+            option => option.Condition == settings.StopCondition);
+        StopValueBox.Value = settings.StopValue;
         DebugLogPathBox.Text = DebugLogStore.DefaultPath;
         RandomUploadCheck.IsChecked = settings.RandomizeUpload;
         MinimumUploadBox.Value = settings.MinimumUploadRateKib;
@@ -56,6 +69,7 @@ public partial class SettingsWindow : Window
         ProxyUsernameBox.Text = settings.ProxyUsername;
         ProxyPasswordBox.Text = settings.ProxyPassword;
         UpdateProxyFields();
+        UpdateStopConditionFields();
         MinimumUploadBox.ValueChanged += RandomBounds_ValueChanged;
         MaximumUploadBox.ValueChanged += RandomBounds_ValueChanged;
         MinimumDownloadBox.ValueChanged += RandomBounds_ValueChanged;
@@ -65,6 +79,9 @@ public partial class SettingsWindow : Window
 
     private void ProxyModeCombo_SelectionChanged(object? sender, SelectionChangedEventArgs e) => UpdateProxyFields();
 
+    private void StopConditionCombo_SelectionChanged(object? sender, SelectionChangedEventArgs e) =>
+        UpdateStopConditionFields();
+
     private void UpdateProxyFields()
     {
         bool enabled = ProxyModeCombo.SelectedItem is TrackerProxyMode.Http or TrackerProxyMode.Socks5;
@@ -72,6 +89,13 @@ public partial class SettingsWindow : Window
         ProxyPortBox.IsEnabled = enabled;
         ProxyUsernameBox.IsEnabled = enabled;
         ProxyPasswordBox.IsEnabled = enabled;
+    }
+
+    private void UpdateStopConditionFields()
+    {
+        StopConditionOption? option = StopConditionCombo.SelectedItem as StopConditionOption;
+        StopValueBox.IsEnabled = option?.Condition != SessionStopCondition.Never;
+        StopValueLabel.Text = option?.Unit ?? string.Empty;
     }
 
     private void Save_Click(object? sender, RoutedEventArgs e)
@@ -96,6 +120,10 @@ public partial class SettingsWindow : Window
         settings.IntervalSeconds = Decimal.ToInt32(IntervalBox.Value ?? 1800);
         settings.EnableActivityLog = ActivityLogCheck.IsChecked == true;
         settings.EnableDebugLog = DebugLogCheck.IsChecked == true;
+        settings.StopOnTrackerFailure = StopOnTrackerFailureCheck.IsChecked == true;
+        settings.StopCondition = (StopConditionCombo.SelectedItem as StopConditionOption)?.Condition
+            ?? SessionStopCondition.Never;
+        settings.StopValue = StopValueBox.Value ?? 3600;
         settings.RandomizeUpload = RandomUploadCheck.IsChecked == true;
         settings.MinimumUploadRateKib = MinimumUploadBox.Value ?? 40;
         settings.MaximumUploadRateKib = MaximumUploadBox.Value ?? 80;
@@ -112,6 +140,39 @@ public partial class SettingsWindow : Window
     }
 
     private void Cancel_Click(object? sender, RoutedEventArgs e) => Close(false);
+
+    private void ResetDefaults_Click(object? sender, RoutedEventArgs e)
+    {
+        var defaults = new ApplicationSettings();
+        ThemeModeCombo.SelectedItem = defaults.ThemeMode;
+        ProfileCombo.SelectedItem = ClientProfileCatalog.Default;
+        AddressCombo.SelectedItem = AutomaticAddress;
+        PortBox.Value = defaults.Port;
+        PeerCountBox.Value = defaults.PeerCount;
+        UploadRateBox.Value = defaults.UploadRateKib;
+        DownloadRateBox.Value = defaults.DownloadRateKib;
+        IntervalBox.Value = defaults.IntervalSeconds;
+        ActivityLogCheck.IsChecked = defaults.EnableActivityLog;
+        DebugLogCheck.IsChecked = defaults.EnableDebugLog;
+        StopOnTrackerFailureCheck.IsChecked = defaults.StopOnTrackerFailure;
+        StopConditionCombo.SelectedItem = StopConditionOptions.First(
+            option => option.Condition == defaults.StopCondition);
+        StopValueBox.Value = defaults.StopValue;
+        RandomUploadCheck.IsChecked = defaults.RandomizeUpload;
+        MinimumUploadBox.Value = defaults.MinimumUploadRateKib;
+        MaximumUploadBox.Value = defaults.MaximumUploadRateKib;
+        RandomDownloadCheck.IsChecked = defaults.RandomizeDownload;
+        MinimumDownloadBox.Value = defaults.MinimumDownloadRateKib;
+        MaximumDownloadBox.Value = defaults.MaximumDownloadRateKib;
+        ProxyModeCombo.SelectedItem = defaults.ProxyMode;
+        ProxyHostBox.Text = defaults.ProxyHost;
+        ProxyPortBox.Value = defaults.ProxyPort;
+        ProxyUsernameBox.Text = defaults.ProxyUsername;
+        ProxyPasswordBox.Text = string.Empty;
+        UpdateProxyFields();
+        UpdateStopConditionFields();
+        ValidateRandomBounds();
+    }
 
     private void RandomBounds_ValueChanged(object? sender, NumericUpDownValueChangedEventArgs e) =>
         ValidateRandomBounds();
@@ -144,5 +205,13 @@ public partial class SettingsWindow : Window
             ValidationText.Text = "Could not open the debug log: " + exception.Message;
             ValidationText.IsVisible = true;
         }
+    }
+
+    private sealed record StopConditionOption(
+        SessionStopCondition Condition,
+        string Label,
+        string Unit)
+    {
+        public override string ToString() => Label;
     }
 }

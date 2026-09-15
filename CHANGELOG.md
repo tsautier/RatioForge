@@ -5,6 +5,22 @@ All notable changes to RatioForge will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2026-09-15
+
+### Added
+- **Live session metrics:** The main window now displays completion, ratio, and elapsed session time alongside the transfer counters.
+- **Automatic stopping:** Sessions can stop after a duration, uploaded volume, downloaded volume, or target ratio.
+- **Safety defaults:** Tracker rejection stops the session by default, and Settings can be restored to their defaults in one action.
+
+### Changed
+- **Stable session configuration:** Torrent, client identity, network, completion, interval, and Settings controls are locked while a session is active.
+- **Lifecycle announces:** RatioForge now attempts a final `stopped` announce on manual stop, reset, torrent replacement, automatic stop, and application exit; it sends `completed` when simulated download progress reaches 100%.
+- **Roadmap:** Added the structured history, network diagnostics, tracker-tier failover, UDP, session-profile, and verified-update objectives planned for 1.2.x.
+
+### Fixed
+- **Concurrent stopping:** Stop remains effective while a tracker request is in progress, without allowing the old response to overwrite the new session state.
+- **Progress state:** Completion now follows the simulated downloaded byte count and resets with the session counters.
+
 ## [1.1.3] - 2026-09-14
 
 ### Added

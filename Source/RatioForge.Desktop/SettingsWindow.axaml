@@ -38,6 +38,15 @@
             </Grid>
             <CheckBox x:Name="ActivityLogCheck" Content="Enable activity log" />
             <CheckBox x:Name="DebugLogCheck" Content="Enable persistent debug logging" />
+            <CheckBox x:Name="StopOnTrackerFailureCheck" Content="Stop when the tracker rejects an announce" />
+            <TextBlock Classes="label" Text="Automatic stop" />
+            <Grid ColumnDefinitions="*,180" ColumnSpacing="12">
+              <ComboBox x:Name="StopConditionCombo" SelectionChanged="StopConditionCombo_SelectionChanged" />
+              <StackPanel Grid.Column="1">
+                <TextBlock x:Name="StopValueLabel" Classes="label" Text="Value" />
+                <NumericUpDown x:Name="StopValueBox" Minimum="1" Maximum="1048576" FormatString="0.##" Increment="1" />
+              </StackPanel>
+            </Grid>
             <TextBlock Classes="label" Text="Debug log file" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
               <TextBox x:Name="DebugLogPathBox" IsReadOnly="True" />
@@ -114,6 +123,7 @@
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
         <TextBlock x:Name="ValidationText" Foreground="{DynamicResource DangerTextBrush}" VerticalAlignment="Center" TextWrapping="Wrap" IsVisible="False" />
         <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+          <Button Content="Defaults" Click="ResetDefaults_Click" Padding="16,8" />
           <Button Content="Cancel" Click="Cancel_Click" Padding="16,8" />
           <Button x:Name="SaveButton" Classes="primary" Content="Save settings" Click="Save_Click" Padding="16,8" />
         </StackPanel>

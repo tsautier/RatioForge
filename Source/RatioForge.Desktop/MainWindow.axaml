@@ -23,7 +23,7 @@
               </MenuFlyout>
             </Button.Flyout>
           </Button>
-          <Button Content="Settings" Click="Settings_Click" Padding="12,7" />
+          <Button x:Name="SettingsButton" Content="Settings" Click="Settings_Click" Padding="12,7" />
           <Button x:Name="UpdateButton" Content="Update available" Click="LatestRelease_Click" IsVisible="False" Padding="10,7" />
           <Border CornerRadius="4" Background="{DynamicResource PlatformBackgroundBrush}" Padding="9,5" VerticalAlignment="Center">
             <TextBlock x:Name="PlatformText" Foreground="{DynamicResource AccentTextBrush}" FontSize="11" FontWeight="SemiBold" />
@@ -40,7 +40,7 @@
               <TextBlock Classes="section-title" Text="Torrent" />
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <TextBox x:Name="TorrentPathBox" PlaceholderText="Choose a .torrent file" IsReadOnly="True" />
-                <Button Grid.Column="1" Content="Open..." Click="OpenTorrent_Click" Padding="14,8" />
+                <Button x:Name="OpenTorrentButton" Grid.Column="1" Content="Open..." Click="OpenTorrent_Click" Padding="14,8" />
               </Grid>
               <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
                 <StackPanel>
@@ -132,14 +132,17 @@
             <StackPanel>
               <TextBlock Classes="label" Text="UPLOADED" />
               <TextBlock x:Name="UploadedText" Text="0 B" FontSize="24" FontWeight="SemiBold" />
+              <TextBlock x:Name="RatioText" Text="Ratio -" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" />
             </StackPanel>
             <StackPanel Grid.Column="1">
               <TextBlock Classes="label" Text="DOWNLOADED" />
               <TextBlock x:Name="DownloadedText" Text="0 B" FontSize="24" FontWeight="SemiBold" />
+              <TextBlock x:Name="CompletionText" Text="Completed 0%" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" />
             </StackPanel>
             <StackPanel Grid.Column="2">
               <TextBlock Classes="label" Text="NEXT ANNOUNCE" />
               <TextBlock x:Name="CountdownText" Text="-" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}" />
+              <TextBlock x:Name="ElapsedText" Text="Elapsed 00:00:00" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" />
             </StackPanel>
           </Grid>
         </Border>

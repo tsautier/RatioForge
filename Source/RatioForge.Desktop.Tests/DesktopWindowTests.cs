@@ -17,8 +17,24 @@ public sealed class DesktopWindowTests
             Assert.That(window.FindControl<TextBlock>("UploadedText")?.Text, Is.EqualTo("0 B"));
             Assert.That(window.FindControl<TextBlock>("DownloadedText")?.Text, Is.EqualTo("0 B"));
             Assert.That(window.FindControl<TextBlock>("CountdownText")?.Text, Is.EqualTo("-"));
+            Assert.That(window.FindControl<TextBlock>("RatioText")?.Text, Is.EqualTo("Ratio -"));
+            Assert.That(window.FindControl<TextBlock>("CompletionText")?.Text, Is.EqualTo("Completed 0%"));
+            Assert.That(window.FindControl<TextBlock>("ElapsedText")?.Text, Is.EqualTo("Elapsed 00:00:00"));
             Assert.That(window.FindControl<Button>("ManualUpdateButton")?.IsEnabled, Is.False);
             Assert.That(window.FindControl<Button>("ResetSessionButton")?.IsEnabled, Is.False);
+        });
+    }
+
+    [AvaloniaTest]
+    public void SettingsWindowShouldExposeSessionSafetyDefaults()
+    {
+        var window = new SettingsWindow(new ApplicationSettings());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(window.FindControl<CheckBox>("StopOnTrackerFailureCheck")?.IsChecked, Is.True);
+            Assert.That(window.FindControl<ComboBox>("StopConditionCombo")?.SelectedIndex, Is.Zero);
+            Assert.That(window.FindControl<NumericUpDown>("StopValueBox")?.IsEnabled, Is.False);
         });
     }
 

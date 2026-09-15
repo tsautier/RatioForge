@@ -11,6 +11,16 @@ public enum ApplicationThemeMode
     Light,
 }
 
+/// <summary>Condition that ends an active tracker session automatically.</summary>
+public enum SessionStopCondition
+{
+    Never,
+    AfterDuration,
+    Uploaded,
+    Downloaded,
+    Ratio,
+}
+
 /// <summary>Persistent, cross-platform defaults for new RatioForge sessions.</summary>
 public sealed class ApplicationSettings
 {
@@ -46,6 +56,12 @@ public sealed class ApplicationSettings
 
     public bool EnableDebugLog { get; set; }
 
+    public bool StopOnTrackerFailure { get; set; } = true;
+
+    public SessionStopCondition StopCondition { get; set; } = SessionStopCondition.Never;
+
+    public decimal StopValue { get; set; } = 3600;
+
     public TrackerProxyMode ProxyMode { get; set; } = TrackerProxyMode.None;
 
     public string ProxyHost { get; set; } = string.Empty;
@@ -71,6 +87,11 @@ public sealed class ApplicationSettings
             ThemeMode = ApplicationThemeMode.System;
         }
 
+        if (!Enum.IsDefined(StopCondition))
+        {
+            StopCondition = SessionStopCondition.Never;
+        }
+
         if (!ClientProfileCatalog.All.Any(profile => profile.Name == DefaultProfileName))
         {
             DefaultProfileName = ClientProfileCatalog.DefaultProfileName;
@@ -86,6 +107,7 @@ public sealed class ApplicationSettings
         UploadRateKib = Math.Clamp(UploadRateKib, 0, 1_048_576);
         DownloadRateKib = Math.Clamp(DownloadRateKib, 0, 1_048_576);
         IntervalSeconds = Math.Clamp(IntervalSeconds, 30, 86400);
+        StopValue = Math.Clamp(StopValue, 1, 1_048_576);
         MinimumUploadRateKib = decimal.Round(Math.Clamp(MinimumUploadRateKib, 0, 1_048_576), 0, MidpointRounding.AwayFromZero);
         MaximumUploadRateKib = decimal.Round(Math.Clamp(MaximumUploadRateKib, MinimumUploadRateKib, 1_048_576), 0, MidpointRounding.AwayFromZero);
         MinimumDownloadRateKib = decimal.Round(Math.Clamp(MinimumDownloadRateKib, 0, 1_048_576), 0, MidpointRounding.AwayFromZero);
