@@ -19,7 +19,8 @@ public sealed record TrackerAnnounceOptions(
     string LocalIp = "",
     TrackerProxyOptions? Proxy = null,
     ClientIdentity? Identity = null,
-    long? Left = null);
+    long? Left = null,
+    string? TrackerUrl = null);
 
 public enum TrackerProxyMode
 {
@@ -80,6 +81,18 @@ public sealed class TrackerAnnounceClient : IDisposable
             throw new ArgumentOutOfRangeException(nameof(options), "Port must be between 1 and 65535.");
         }
 
+        string trackerUrl = options.TrackerUrl ?? options.Torrent.Tracker;
+        var trackerUri = new Uri(trackerUrl, UriKind.Absolute);
+        if (trackerUri.Scheme == "udp")
+        {
+            return await UdpTrackerClient.AnnounceAsync(options, trackerUrl, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (trackerUri.Scheme is not ("http" or "https"))
+        {
+            throw new NotSupportedException($"Tracker protocol '{trackerUri.Scheme}' is not supported.");
+        }
+
         IPAddress? localAddress = NetworkAddressCatalog.ParseOptional(options.LocalIp);
         TorrentClient client = options.Profile.CreateClient();
         ClientIdentity identity = options.Identity ?? new ClientIdentity(client.Key, client.PeerID);
@@ -91,7 +104,7 @@ public sealed class TrackerAnnounceClient : IDisposable
 
         var info = new TorrentInfo(options.Uploaded, options.Downloaded)
         {
-            tracker = options.Torrent.Tracker,
+            tracker = trackerUrl,
             hash = options.Torrent.InfoHash,
             left = left,
             totalsize = options.Torrent.TotalSize,
@@ -106,10 +119,6 @@ public sealed class TrackerAnnounceClient : IDisposable
             : "&event=" + options.Event.Trim().ToLowerInvariant();
         string requestUrl = TrackerUrlBuilder.BuildAnnounce(info, client, trackerEvent, localAddress?.ToString() ?? string.Empty);
         var uri = new Uri(requestUrl, UriKind.Absolute);
-        if (uri.Scheme is not ("http" or "https"))
-        {
-            throw new NotSupportedException("The cross-platform client currently supports HTTP and HTTPS trackers.");
-        }
 
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
         request.Headers.TryAddWithoutValidation("User-Agent", options.Profile.UserAgent);

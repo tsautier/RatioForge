@@ -5,6 +5,23 @@ All notable changes to RatioForge will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-09-15
+
+### Added
+- **Structured announce history:** A dedicated table records time, event, redacted tracker, protocol, status, latency, interval, and result for every tracker attempt.
+- **Network diagnostics:** The desktop application can test tracker DNS, IPv4, IPv6, TCP, TLS, explicit proxy endpoints and HTTP routes, and UDP BEP 15 handshakes before a session starts.
+- **Tracker tiers and failover:** Torrent `announce-list` tiers are parsed in order, the active tracker is displayed, and failed or rejected attempts automatically fall through to the next candidate.
+- **UDP trackers:** The portable engine implements BEP 15 connect and announce exchanges over IPv4 or IPv6, including legacy percent-escaped peer IDs.
+- **Named session profiles:** Settings can save, load, replace, and delete reusable client, rate, port, proxy, source-address, interval, and randomization configurations without persisting proxy passwords.
+- **Verified platform updates:** Update checks display release notes, choose the archive matching the running OS and architecture, download it, validate its published size and SHA256 entry, and only then open it.
+
+### Changed
+- **Diagnostics:** Copied support reports now include the active tracker candidate, profile name, and redacted structured announce history.
+- **Tests:** Added parser, UDP packet, live loopback UDP, diagnostics, profile persistence, update asset selection, checksum rejection, and Avalonia control coverage.
+
+### Security
+- **Release downloads:** Unsafe asset names, unexpected sizes, missing checksum entries, and checksum mismatches are rejected before a downloaded update is exposed to the user.
+
 ## [1.1.5] - 2026-09-15
 
 ### Fixed

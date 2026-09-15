@@ -1,6 +1,7 @@
 namespace RatioForge.Desktop;
 
 using System.Diagnostics;
+using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
@@ -16,6 +17,7 @@ public partial class SettingsWindow : Window
         new(SessionStopCondition.Ratio, "After reaching a ratio", "Ratio"),
     ];
     private readonly ApplicationSettings settings;
+    private readonly ObservableCollection<SessionProfile> sessionProfiles;
 
     public SettingsWindow()
         : this(new ApplicationSettings())
@@ -26,6 +28,8 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         this.settings = settings;
+        sessionProfiles = new ObservableCollection<SessionProfile>(SessionProfileStore.Load());
+        SessionProfilesList.ItemsSource = sessionProfiles;
         ThemeModeCombo.ItemsSource = Enum.GetValues<ApplicationThemeMode>();
         ThemeModeCombo.SelectedItem = settings.ThemeMode;
         ProfileCombo.ItemsSource = ClientProfileCatalog.All;
@@ -75,6 +79,8 @@ public partial class SettingsWindow : Window
         MinimumDownloadBox.ValueChanged += RandomBounds_ValueChanged;
         MaximumDownloadBox.ValueChanged += RandomBounds_ValueChanged;
         ValidateRandomBounds();
+        SessionProfilesList.SelectedItem = sessionProfiles.FirstOrDefault(profile =>
+            profile.Name.Equals(settings.SelectedSessionProfileName, StringComparison.OrdinalIgnoreCase));
     }
 
     private void ProxyModeCombo_SelectionChanged(object? sender, SelectionChangedEventArgs e) => UpdateProxyFields();
@@ -135,8 +141,131 @@ public partial class SettingsWindow : Window
         settings.ProxyPort = Decimal.ToInt32(ProxyPortBox.Value ?? 8080);
         settings.ProxyUsername = ProxyUsernameBox.Text ?? string.Empty;
         settings.ProxyPassword = ProxyPasswordBox.Text ?? string.Empty;
+        settings.SelectedSessionProfileName = (SessionProfilesList.SelectedItem as SessionProfile)?.Name ?? string.Empty;
         settings.Normalize();
         Close(true);
+    }
+
+    private void LoadProfile_Click(object? sender, RoutedEventArgs e)
+    {
+        if (SessionProfilesList.SelectedItem is not SessionProfile profile)
+        {
+            ShowValidation("Select a profile to load.");
+            return;
+        }
+
+        var snapshot = new ApplicationSettings();
+        profile.ApplyTo(snapshot);
+        ApplySessionControls(snapshot);
+        SessionProfileNameBox.Text = profile.Name;
+        HideValidation();
+    }
+
+    private void SaveProfile_Click(object? sender, RoutedEventArgs e)
+    {
+        string name = SessionProfileNameBox.Text?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            ShowValidation("Enter a profile name.");
+            return;
+        }
+
+        if (!ValidateRandomBounds())
+        {
+            return;
+        }
+
+        SessionProfile profile = SessionProfile.FromSettings(name, CaptureSessionControls());
+        SessionProfile? existing = sessionProfiles.FirstOrDefault(item =>
+            item.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            int index = sessionProfiles.IndexOf(existing);
+            sessionProfiles[index] = profile;
+        }
+        else
+        {
+            sessionProfiles.Add(profile);
+        }
+
+        SessionProfileStore.Save(sessionProfiles);
+        SessionProfilesList.SelectedItem = profile;
+        HideValidation();
+    }
+
+    private void DeleteProfile_Click(object? sender, RoutedEventArgs e)
+    {
+        if (SessionProfilesList.SelectedItem is not SessionProfile profile)
+        {
+            ShowValidation("Select a profile to delete.");
+            return;
+        }
+
+        sessionProfiles.Remove(profile);
+        SessionProfileStore.Save(sessionProfiles);
+        SessionProfileNameBox.Text = string.Empty;
+        HideValidation();
+    }
+
+    private ApplicationSettings CaptureSessionControls()
+    {
+        var snapshot = new ApplicationSettings
+        {
+            DefaultProfileName = (ProfileCombo.SelectedItem as ClientProfile)?.Name ?? ClientProfileCatalog.DefaultProfileName,
+            LocalAddress = AddressCombo.SelectedIndex > 0 ? AddressCombo.SelectedItem?.ToString() ?? string.Empty : string.Empty,
+            Port = Decimal.ToInt32(PortBox.Value ?? 6881),
+            PeerCount = Decimal.ToInt32(PeerCountBox.Value ?? 200),
+            UploadRateKib = UploadRateBox.Value ?? 60,
+            DownloadRateKib = DownloadRateBox.Value ?? 30,
+            IntervalSeconds = Decimal.ToInt32(IntervalBox.Value ?? 1800),
+            RandomizeUpload = RandomUploadCheck.IsChecked == true,
+            MinimumUploadRateKib = MinimumUploadBox.Value ?? 40,
+            MaximumUploadRateKib = MaximumUploadBox.Value ?? 80,
+            RandomizeDownload = RandomDownloadCheck.IsChecked == true,
+            MinimumDownloadRateKib = MinimumDownloadBox.Value ?? 20,
+            MaximumDownloadRateKib = MaximumDownloadBox.Value ?? 40,
+            ProxyMode = ProxyModeCombo.SelectedItem is TrackerProxyMode mode ? mode : TrackerProxyMode.None,
+            ProxyHost = ProxyHostBox.Text ?? string.Empty,
+            ProxyPort = Decimal.ToInt32(ProxyPortBox.Value ?? 8080),
+            ProxyUsername = ProxyUsernameBox.Text ?? string.Empty,
+        };
+        snapshot.Normalize();
+        return snapshot;
+    }
+
+    private void ApplySessionControls(ApplicationSettings source)
+    {
+        ProfileCombo.SelectedItem = ClientProfileCatalog.All.First(profile => profile.Name == source.DefaultProfileName);
+        AddressCombo.SelectedItem = string.IsNullOrWhiteSpace(source.LocalAddress) ? AutomaticAddress : source.LocalAddress;
+        PortBox.Value = source.Port;
+        PeerCountBox.Value = source.PeerCount;
+        UploadRateBox.Value = source.UploadRateKib;
+        DownloadRateBox.Value = source.DownloadRateKib;
+        IntervalBox.Value = source.IntervalSeconds;
+        RandomUploadCheck.IsChecked = source.RandomizeUpload;
+        MinimumUploadBox.Value = source.MinimumUploadRateKib;
+        MaximumUploadBox.Value = source.MaximumUploadRateKib;
+        RandomDownloadCheck.IsChecked = source.RandomizeDownload;
+        MinimumDownloadBox.Value = source.MinimumDownloadRateKib;
+        MaximumDownloadBox.Value = source.MaximumDownloadRateKib;
+        ProxyModeCombo.SelectedItem = source.ProxyMode;
+        ProxyHostBox.Text = source.ProxyHost;
+        ProxyPortBox.Value = source.ProxyPort;
+        ProxyUsernameBox.Text = source.ProxyUsername;
+        ProxyPasswordBox.Text = string.Empty;
+        UpdateProxyFields();
+    }
+
+    private void ShowValidation(string message)
+    {
+        ValidationText.Text = message;
+        ValidationText.IsVisible = true;
+    }
+
+    private void HideValidation()
+    {
+        ValidationText.Text = string.Empty;
+        ValidationText.IsVisible = false;
     }
 
     private void Cancel_Click(object? sender, RoutedEventArgs e) => Close(false);
@@ -169,6 +298,8 @@ public partial class SettingsWindow : Window
         ProxyPortBox.Value = defaults.ProxyPort;
         ProxyUsernameBox.Text = defaults.ProxyUsername;
         ProxyPasswordBox.Text = string.Empty;
+        SessionProfilesList.SelectedItem = null;
+        SessionProfileNameBox.Text = string.Empty;
         UpdateProxyFields();
         UpdateStopConditionFields();
         ValidateRandomBounds();

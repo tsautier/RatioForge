@@ -19,12 +19,12 @@
   - Deluge, Transmission, KTorrent
   - And more!
 - **Current default identity**: qBittorrent 5.2.3, the latest stable release verified by the project
-- **Persistent settings**: Cross-platform session defaults, automatic/dark/light appearance, IPv4/IPv6 source selection, HTTP/SOCKS5 proxy, speed randomization, activity logging, and opt-in debug logs
-- **Release updates**: Automatic and manual checks against the latest published GitHub release
+- **Persistent settings**: Cross-platform session defaults and named profiles, automatic/dark/light appearance, IPv4/IPv6 source selection, HTTP/SOCKS5 proxy, speed randomization, activity logging, and opt-in debug logs
+- **Release updates**: Automatic and manual checks with release notes, platform-aware downloads, and SHA256 verification
 - **Session controls**: Immediate manual announces, clean reset, lifecycle events, live completion/ratio/time, and configurable automatic stopping
-- **Diagnostics**: Privacy-filtered activity/debug logs with open, copy, and clear actions
+- **Diagnostics**: Privacy-filtered activity/debug logs, structured announce history, and pre-session DNS/IP/TLS/proxy checks
 - **Cross-platform**: Native desktop builds for Windows, Linux, and macOS
-- **Dual stack networking**: HTTP and HTTPS trackers over IPv4 or IPv6, with automatic routing or explicit local-address binding
+- **Tracker networking**: HTTP, HTTPS, and UDP trackers over IPv4 or IPv6, `announce-list` tiers, failover, automatic routing, and explicit local-address binding
 - **Modernized**: Rebuilt for .NET 10 and Avalonia UI
 
 ## Requirements
@@ -80,13 +80,14 @@ dotnet test Source/RatioForge.sln
 
 For support, use the built-in Help menu to open the GitHub repository or create an issue.
 
-## What's New in 1.1.5 (RatioForge)
+## What's New in 1.2.0 (RatioForge)
 
-- **Legacy-compatible completion**: Initial completion controls `left` without inflating the session's downloaded counter
-- **Correct partial progress**: Simulated downloads advance from the selected initial percentage
-- **Verbose tracker diagnostics**: Debug logs include remaining bytes, HTTP/CDN metadata, latency, redirects, and tracker swarm statistics
-- **Useful activity panel**: Detailed diagnostics remain visible in the app even when persistent file logging is disabled
-- **Safer support reports**: Copied diagnostics mask the loaded torrent name
+- **Announce history**: Inspect each attempt's event, tracker, protocol, status, latency, interval, and result
+- **Network checks**: Diagnose DNS, IPv4, IPv6, TCP, TLS, proxy, and UDP connectivity before starting
+- **Tracker failover**: Use ordered `announce-list` tiers and show the active tracker
+- **UDP support**: Announce to BEP 15 trackers over IPv4 and IPv6
+- **Session profiles**: Save and restore named client, speed, network, proxy, and randomization configurations
+- **Verified updates**: View release notes and download the correct platform archive with size and SHA256 validation
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.
 The source evidence for current emulation signatures is recorded in the [2026 client profile audit](docs/client-profile-audit-2026-08-11.md).

@@ -19,20 +19,22 @@ Completed through 2026-09-15.
 - [x] **Done - Session lifecycle parity:** Active sessions keep a stable identity, report live completion/ratio/time, send completion and stop lifecycle events, and support automatic stop thresholds.
 - [x] **Done - Legacy completion accounting:** Initial completion controls the tracker `left` value independently from bytes downloaded during the active session.
 
-## Medium Term - 1.2.x
+## Medium Term - 1.2.x - Done
 
-6. **Structured announce history:** Add a table containing time, event, tracker, protocol, latency, HTTP status, interval, and result while keeping sensitive values redacted.
-7. **Network diagnostics:** Test DNS, IPv4, IPv6, TLS, and proxy connectivity before a session starts, and present readable results instead of raw exceptions.
-8. **`announce-list` management:** Support tracker tiers from torrent metadata, fail over to a secondary tracker, and display the tracker currently in use.
-9. **UDP tracker support:** Extend the engine to `udp://` trackers with protocol-specific network tests. This is intentionally planned as a minor release feature.
-10. **Session profiles:** Save multiple named configurations containing emulated client, rates, port, proxy, local address, and randomization settings.
-11. **Improved updates:** Offer the correct download for the current operating system and architecture, display release notes, and verify SHA256 before opening it.
+Completed in 1.2.0 on 2026-09-15.
+
+- [x] **Done - Structured announce history:** The session table contains time, event, redacted tracker, protocol, latency, status, interval, and result.
+- [x] **Done - Network diagnostics:** Pre-session checks cover DNS, IPv4, IPv6, TCP, TLS, explicit proxy endpoints and routed requests, and UDP tracker handshakes with readable results.
+- [x] **Done - `announce-list` management:** Tracker tiers are parsed in order, failed candidates fall back automatically, and the active tracker is displayed.
+- [x] **Done - UDP tracker support:** The engine implements BEP 15 connection and announce exchanges over IPv4 and IPv6 with protocol-specific tests.
+- [x] **Done - Session profiles:** Named configurations persist client, rates, port, proxy, local address, interval, and randomization settings without proxy passwords.
+- [x] **Done - Improved updates:** Update checks select the current OS/architecture archive, display release notes, and verify size and SHA256 before opening the download.
 
 Additional 1.2.x maintenance:
 
 - Add a dedicated .NET CLI project if command-line automation is needed.
-- Add structured logging for tracker communication, version checks, and proxy failures.
-- Improve error handling around network, proxy, and malformed torrent files.
+- Completed in 1.2.0: structured announce history covers tracker communication and readable diagnostics cover common network and proxy failures.
+- Continue improving error handling as new tracker and malformed torrent cases are reported.
 - Completed early: sample torrent fixtures now cover parser and tracker behavior; continue extending them when regressions are found.
 - Active: CI enforces startup checks and size budgets for the compressed self-contained and Lite single-file releases.
 - Add a signed release path if code-signing certificates become available.

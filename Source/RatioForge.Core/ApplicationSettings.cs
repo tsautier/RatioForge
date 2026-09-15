@@ -24,6 +24,8 @@ public enum SessionStopCondition
 /// <summary>Persistent, cross-platform defaults for new RatioForge sessions.</summary>
 public sealed class ApplicationSettings
 {
+    public string SelectedSessionProfileName { get; set; } = string.Empty;
+
     public ApplicationThemeMode ThemeMode { get; set; } = ApplicationThemeMode.System;
 
     public string DefaultProfileName { get; set; } = ClientProfileCatalog.DefaultProfileName;

@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:RatioForge.Desktop"
+        x:Class="RatioForge.Desktop.NetworkDiagnosticsWindow"
+        Title="RatioForge Network Diagnostics"
+        Width="720" Height="520"
+        MinWidth="560" MinHeight="400"
+        WindowStartupLocation="CenterOwner">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <StackPanel Margin="20,18,20,12" Spacing="5">
+      <TextBlock Classes="section-title" Text="Network diagnostics" FontSize="18" />
+      <TextBlock x:Name="SummaryText" Text="Preparing checks..." Foreground="{DynamicResource SecondaryTextBrush}" />
+    </StackPanel>
+    <ListBox x:Name="ResultsList" Grid.Row="1" Margin="20,0" Background="Transparent" BorderThickness="0">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="local:DiagnosticRow">
+          <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,0,0,1" Padding="4,10">
+            <Grid ColumnDefinitions="120,90,*,70" ColumnSpacing="10">
+              <TextBlock Text="{Binding Test}" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="1" Text="{Binding Status}" />
+              <TextBlock Grid.Column="2" Text="{Binding Details}" TextWrapping="Wrap" />
+              <TextBlock Grid.Column="3" Text="{Binding Latency}" HorizontalAlignment="Right" />
+            </Grid>
+          </Border>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+    <Border Grid.Row="2" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0" Padding="18,12">
+      <Button Content="Close" Click="Close_Click" HorizontalAlignment="Right" Padding="18,8" />
+    </Border>
+  </Grid>
+</Window>

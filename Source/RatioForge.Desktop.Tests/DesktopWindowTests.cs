@@ -91,4 +91,32 @@ public sealed class DesktopWindowTests
             Assert.That(current.FindControl<Button>("OpenReleaseButton")?.IsVisible, Is.False);
         });
     }
+
+    [AvaloniaTest]
+    public void MainWindowShouldExposeStructuredAnnounceHistory()
+    {
+        var window = new MainWindow();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(window.FindControl<ListBox>("AnnounceHistoryList"), Is.Not.Null);
+            Assert.That(window.FindControl<ListBox>("AnnounceHistoryList")?.ItemsSource, Is.Not.Null);
+        });
+    }
+
+    [AvaloniaTest]
+    public void SettingsAndUpdateWindowsShouldExposeProfilesAndVerifiedDownload()
+    {
+        var settings = new SettingsWindow(new ApplicationSettings());
+        var update = new UpdateCheckWindow(
+            "Update available", "Version 2 is available.", true, "Release notes", canDownload: true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(settings.FindControl<ListBox>("SessionProfilesList"), Is.Not.Null);
+            Assert.That(settings.FindControl<TextBox>("SessionProfileNameBox"), Is.Not.Null);
+            Assert.That(update.FindControl<Button>("DownloadButton")?.IsVisible, Is.True);
+            Assert.That(update.FindControl<TextBox>("ReleaseNotesText")?.Text, Is.EqualTo("Release notes"));
+        });
+    }
 }

@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:RatioForge.Desktop"
         x:Class="RatioForge.Desktop.MainWindow"
         Title="RatioForge"
         Width="1080" Height="720"
@@ -19,6 +20,7 @@
                 <MenuItem Header="GitHub repository" Click="Repository_Click" />
                 <MenuItem Header="Create an issue" Click="CreateIssue_Click" />
                 <MenuItem Header="Check for updates" Click="CheckForUpdates_Click" />
+                <MenuItem Header="Network diagnostics" Click="NetworkDiagnostics_Click" />
                 <MenuItem Header="Latest release" Click="LatestRelease_Click" />
               </MenuFlyout>
             </Button.Flyout>
@@ -152,7 +154,8 @@
             <Button x:Name="StartButton" Classes="primary" Content="Start session" Click="Start_Click" Margin="0,0,10,0" />
             <Button x:Name="StopButton" Classes="danger" Content="Stop" Click="Stop_Click" IsEnabled="False" Margin="0,0,10,0" />
             <Button x:Name="ManualUpdateButton" Content="Manual update" Click="ManualUpdate_Click" IsEnabled="False" Margin="0,0,10,0" />
-            <Button x:Name="ResetSessionButton" Content="Reset" Click="ResetSession_Click" IsEnabled="False" />
+            <Button x:Name="ResetSessionButton" Content="Reset" Click="ResetSession_Click" IsEnabled="False" Margin="0,0,10,0" />
+            <Button x:Name="NetworkDiagnosticsButton" Content="Network check" Click="NetworkDiagnostics_Click" />
           </WrapPanel>
           <TextBlock x:Name="StatusText" Grid.Row="1" Text="Ready" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{DynamicResource SecondaryTextBrush}" />
         </Grid>
@@ -161,7 +164,7 @@
           <Grid RowDefinitions="46,*">
             <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,0,0,1" Padding="16,0">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <TextBlock Classes="section-title" Text="Activity" VerticalAlignment="Center" />
+                <TextBlock Classes="section-title" Text="Session records" VerticalAlignment="Center" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                   <Button Content="Open log" Click="OpenDebugLog_Click" Padding="9,5" />
                   <Button Content="Copy diagnostics" Click="CopyDiagnostics_Click" Padding="9,5" />
@@ -169,7 +172,41 @@
                 </StackPanel>
               </Grid>
             </Border>
-            <ListBox x:Name="ActivityList" Grid.Row="1" Margin="8" Background="Transparent" BorderThickness="0" FontFamily="Cascadia Mono,Consolas,monospace" FontSize="12" />
+            <TabControl Grid.Row="1" Margin="8">
+              <TabItem Header="Activity">
+                <ListBox x:Name="ActivityList" Background="Transparent" BorderThickness="0" FontFamily="Cascadia Mono,Consolas,monospace" FontSize="12" />
+              </TabItem>
+              <TabItem Header="Announces">
+                <Grid RowDefinitions="34,*">
+                  <Grid ColumnDefinitions="70,75,*,65,55,65,65,120" ColumnSpacing="8" Margin="8,0">
+                    <TextBlock Text="Time" Classes="label" />
+                    <TextBlock Grid.Column="1" Text="Event" Classes="label" />
+                    <TextBlock Grid.Column="2" Text="Tracker" Classes="label" />
+                    <TextBlock Grid.Column="3" Text="Protocol" Classes="label" />
+                    <TextBlock Grid.Column="4" Text="Status" Classes="label" />
+                    <TextBlock Grid.Column="5" Text="Latency" Classes="label" />
+                    <TextBlock Grid.Column="6" Text="Interval" Classes="label" />
+                    <TextBlock Grid.Column="7" Text="Result" Classes="label" />
+                  </Grid>
+                  <ListBox x:Name="AnnounceHistoryList" Grid.Row="1" Background="Transparent" BorderThickness="0">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="local:AnnounceHistoryRow">
+                        <Grid ColumnDefinitions="70,75,*,65,55,65,65,120" ColumnSpacing="8" Margin="8,5">
+                          <TextBlock Text="{Binding Time}" />
+                          <TextBlock Grid.Column="1" Text="{Binding Event}" />
+                          <TextBlock Grid.Column="2" Text="{Binding Tracker}" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="3" Text="{Binding Protocol}" />
+                          <TextBlock Grid.Column="4" Text="{Binding Status}" />
+                          <TextBlock Grid.Column="5" Text="{Binding Latency}" />
+                          <TextBlock Grid.Column="6" Text="{Binding Interval}" />
+                          <TextBlock Grid.Column="7" Text="{Binding Result}" TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </Grid>
+              </TabItem>
+            </TabControl>
           </Grid>
         </Border>
       </Grid>

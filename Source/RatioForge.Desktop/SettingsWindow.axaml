@@ -117,6 +117,23 @@
           </StackPanel>
         </ScrollViewer>
       </TabItem>
+      <TabItem Header="Profiles">
+        <Grid Margin="8,18" RowDefinitions="Auto,*,Auto" RowSpacing="12">
+          <StackPanel Spacing="6">
+            <TextBlock Classes="section-title" Text="Named session profiles" />
+            <TextBlock Foreground="{DynamicResource SecondaryTextBrush}" Text="Profiles contain client, rates, port, proxy, address, and randomization settings." TextWrapping="Wrap" />
+          </StackPanel>
+          <ListBox x:Name="SessionProfilesList" Grid.Row="1" />
+          <Grid Grid.Row="2" RowDefinitions="Auto,Auto" RowSpacing="8">
+            <TextBox x:Name="SessionProfileNameBox" PlaceholderText="Profile name" />
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+              <Button Content="Load selected" Click="LoadProfile_Click" Padding="12,7" />
+              <Button Content="Save current as" Click="SaveProfile_Click" Padding="12,7" />
+              <Button Content="Delete" Click="DeleteProfile_Click" Padding="12,7" />
+            </StackPanel>
+          </Grid>
+        </Grid>
+      </TabItem>
     </TabControl>
 
     <Border Grid.Row="1" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0" Padding="18,12">

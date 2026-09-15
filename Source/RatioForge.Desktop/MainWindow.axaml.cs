@@ -19,9 +19,11 @@ public partial class MainWindow : Window
     private const string NewIssueUrl = RepositoryUrl + "/issues/new/choose";
     private const string LatestReleaseUrl = RepositoryUrl + "/releases/latest";
     private readonly ObservableCollection<string> activity = [];
+    private readonly ObservableCollection<AnnounceHistoryRow> announceHistory = [];
     private readonly DispatcherTimer timer;
     private readonly TrackerAnnounceClient announceClient = new();
     private readonly ReleaseUpdateChecker updateChecker = new();
+    private readonly ReleasePackageDownloader updateDownloader = new();
     private readonly ApplicationSettings settings;
     private readonly string currentVersion;
     private ClientIdentity? clientIdentity;
@@ -39,12 +41,15 @@ public partial class MainWindow : Window
     private bool allowClose;
     private int sessionGeneration;
     private string availableReleaseUrl = LatestReleaseUrl;
+    private ReleaseUpdateResult? availableUpdate;
+    private int activeTrackerIndex;
 
     public MainWindow()
     {
         InitializeComponent();
         settings = ApplicationSettingsStore.Load();
         ActivityList.ItemsSource = activity;
+        AnnounceHistoryList.ItemsSource = announceHistory;
         ClientCombo.ItemsSource = ClientProfileCatalog.All;
         ApplySettings();
         PlatformText.Text = $".NET 10 / {GetPlatformName()}";
@@ -72,6 +77,15 @@ public partial class MainWindow : Window
 
     private async void CheckForUpdates_Click(object? sender, RoutedEventArgs e) =>
         await CheckForUpdatesAsync(manual: true);
+
+    private async void NetworkDiagnostics_Click(object? sender, RoutedEventArgs e)
+    {
+        var window = new NetworkDiagnosticsWindow(
+            torrent?.Trackers ?? [],
+            AddressCombo.SelectedIndex > 0 ? AddressCombo.SelectedItem?.ToString() ?? string.Empty : string.Empty,
+            settings.ToProxyOptions());
+        await window.ShowDialog(this);
+    }
 
     private void LatestRelease_Click(object? sender, RoutedEventArgs e) => OpenWebPage(availableReleaseUrl);
 
@@ -147,15 +161,17 @@ public partial class MainWindow : Window
             }
 
             torrent = loadedTorrent;
+            activeTrackerIndex = 0;
+            announceHistory.Clear();
             ResetTransferCounters();
             ResetSessionButton.IsEnabled = true;
             TorrentPathBox.Text = torrent.FilePath;
             TorrentNameText.Text = torrent.Name;
             TorrentSizeText.Text = FormatBytes(torrent.TotalSize);
-            TrackerText.Text = torrent.Tracker;
+            UpdateTrackerDisplay();
             InfoHashBox.Text = torrent.InfoHash;
             AddActivity($"Loaded {torrent.Name} ({torrent.FileCount} file(s), {FormatBytes(torrent.TotalSize)}).");
-            AddDebug($"Torrent loaded: name={torrent.Name}; files={torrent.FileCount}; size_bytes={torrent.TotalSize}; info_hash={torrent.InfoHash}; tracker={torrent.Tracker}");
+            AddDebug($"Torrent loaded: name={torrent.Name}; files={torrent.FileCount}; size_bytes={torrent.TotalSize}; info_hash={torrent.InfoHash}; tracker={torrent.Tracker}; tracker_tiers={torrent.TrackerTiers?.Count ?? 1}; trackers={torrent.Trackers.Count}");
             StatusText.Text = "Torrent loaded";
         }
         catch (Exception exception)
@@ -433,20 +449,58 @@ public partial class MainWindow : Window
         StatusText.Text = "Contacting tracker...";
         try
         {
-            var options = new TrackerAnnounceOptions(
-                torrent,
-                profile,
-                uploaded,
-                downloaded,
-                Decimal.ToInt32(PortBox.Value ?? 6881),
-                Decimal.ToInt32(PeerCountBox.Value ?? 200),
-                eventName,
-                AddressCombo.SelectedIndex > 0 ? AddressCombo.SelectedItem?.ToString() ?? string.Empty : string.Empty,
-                settings.ToProxyOptions(),
-                clientIdentity,
-                GetRemainingBytes());
-            AddDebug($"Announce sending: event={eventName}; tracker={torrent.Tracker}; local_ip={options.LocalIp}; uploaded={uploaded}; downloaded={downloaded}; left={options.Left}");
-            TrackerAnnounceResult result = await announceClient.AnnounceAsync(options, cancellationToken);
+            IReadOnlyList<string> trackers = torrent.Trackers;
+            TrackerAnnounceResult? result = null;
+            Exception? finalException = null;
+            for (int offset = 0; offset < trackers.Count; offset++)
+            {
+                int trackerIndex = (activeTrackerIndex + offset) % trackers.Count;
+                string trackerUrl = trackers[trackerIndex];
+                var options = new TrackerAnnounceOptions(
+                    torrent,
+                    profile,
+                    uploaded,
+                    downloaded,
+                    Decimal.ToInt32(PortBox.Value ?? 6881),
+                    Decimal.ToInt32(PeerCountBox.Value ?? 200),
+                    eventName,
+                    AddressCombo.SelectedIndex > 0 ? AddressCombo.SelectedItem?.ToString() ?? string.Empty : string.Empty,
+                    settings.ToProxyOptions(),
+                    clientIdentity,
+                    GetRemainingBytes(),
+                    trackerUrl);
+                AddDebug($"Announce sending: event={eventName}; tracker={trackerUrl}; candidate={trackerIndex + 1}/{trackers.Count}; local_ip={options.LocalIp}; uploaded={uploaded}; downloaded={downloaded}; left={options.Left}");
+                try
+                {
+                    result = await announceClient.AnnounceAsync(options, cancellationToken);
+                    AddAnnounceHistory(eventName, trackerUrl, result);
+                    if (result.IsSuccess)
+                    {
+                        if (activeTrackerIndex != trackerIndex)
+                        {
+                            AddActivity($"Tracker failover selected candidate {trackerIndex + 1} of {trackers.Count}.");
+                        }
+
+                        activeTrackerIndex = trackerIndex;
+                        UpdateTrackerDisplay();
+                        break;
+                    }
+
+                    AddDebug($"Tracker candidate rejected announce: candidate={trackerIndex + 1}/{trackers.Count}; message={result.Message}");
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    finalException = exception;
+                    AddAnnounceHistory(eventName, trackerUrl, exception);
+                    AddDebug($"Tracker candidate failed: candidate={trackerIndex + 1}/{trackers.Count}; type={exception.GetType().FullName}; message={exception.Message}");
+                }
+            }
+
+            if (result is null)
+            {
+                throw finalException ?? new InvalidOperationException("No tracker candidate was available.");
+            }
+
             if (announceGeneration != sessionGeneration)
             {
                 return null;
@@ -455,7 +509,7 @@ public partial class MainWindow : Window
             int interval = result.IntervalSeconds ?? Decimal.ToInt32(IntervalBox.Value ?? 1800);
             interval = Math.Max(30, interval);
             nextAnnounce = DateTimeOffset.UtcNow.AddSeconds(interval);
-            AddDebug($"HTTP response: status={FormatOptional(result.HttpStatusCode)}; protocol={result.HttpVersion}; server={EmptyAsUnknown(result.Server)}; content_type={EmptyAsUnknown(result.ContentType)}; content_length={FormatOptional(result.ContentLength)}; latency_ms={result.ElapsedMilliseconds}; final_url={SensitiveDataRedactor.RedactUrl(result.FinalUrl)}");
+            AddDebug($"Tracker response: status={FormatOptional(result.HttpStatusCode)}; protocol={result.HttpVersion}; server={EmptyAsUnknown(result.Server)}; content_type={EmptyAsUnknown(result.ContentType)}; content_length={FormatOptional(result.ContentLength)}; latency_ms={result.ElapsedMilliseconds}; final_url={SensitiveDataRedactor.RedactUrl(result.FinalUrl)}");
             AddDebug($"Tracker statistics: complete={FormatOptional(result.Complete)}; incomplete={FormatOptional(result.Incomplete)}; ipv4_peers={FormatOptional(result.Ipv4Peers)}; ipv6_peers={FormatOptional(result.Ipv6Peers)}; interval={FormatOptional(result.IntervalSeconds)}; min_interval={FormatOptional(result.MinimumIntervalSeconds)}");
             StatusText.Text = result.IsSuccess ? "Tracker accepted announce" : "Tracker rejected announce";
             AddActivity($"{(result.IsSuccess ? "OK" : "ERROR")} {result.Message} Next announce in {interval}s.");
@@ -609,13 +663,21 @@ public partial class MainWindow : Window
             .AppendLine($"Activity log: {settings.EnableActivityLog}; debug log: {settings.EnableDebugLog}")
             .AppendLine($"Client: {(ClientCombo.SelectedItem as ClientProfile)?.Name ?? "none"}")
             .AppendLine($"Source address: {AddressCombo.SelectedItem ?? "Automatic (IPv4 / IPv6)"}")
-            .AppendLine($"Tracker: {SensitiveDataRedactor.RedactUrl(torrent?.Tracker)}")
+            .AppendLine($"Tracker: {SensitiveDataRedactor.RedactUrl(torrent is null || torrent.Trackers.Count == 0 ? null : torrent.Trackers[activeTrackerIndex])}")
+            .AppendLine($"Tracker candidates: {torrent?.Trackers.Count ?? 0}")
+            .AppendLine($"Session profile: {settings.SelectedSessionProfileName}")
             .AppendLine($"Session active: {sessionCancellation is not null}")
             .AppendLine($"Uploaded: {FormatBytes(uploaded)}; downloaded: {FormatBytes(downloaded)}")
             .AppendLine("Recent activity:");
         foreach (string entry in activity.Take(25))
         {
             report.AppendLine(SensitiveDataRedactor.RedactDiagnostic(entry, torrent?.Name));
+        }
+
+        report.AppendLine("Recent announces:");
+        foreach (AnnounceHistoryRow entry in announceHistory.Take(15))
+        {
+            report.AppendLine($"{entry.Time} {entry.Event} {entry.Protocol} {entry.Status} {entry.Latency} {entry.Interval} {entry.Tracker} {SensitiveDataRedactor.Redact(entry.Result)}");
         }
 
         try
@@ -641,6 +703,7 @@ public partial class MainWindow : Window
     private void ClearActivity_Click(object? sender, RoutedEventArgs e)
     {
         activity.Clear();
+        announceHistory.Clear();
         AddActivity("Activity cleared.");
     }
 
@@ -668,6 +731,7 @@ public partial class MainWindow : Window
         try
         {
             ReleaseUpdateResult result = await updateChecker.CheckAsync(currentVersion);
+            availableUpdate = result;
             availableReleaseUrl = result.ReleaseUrl;
             AddDebug($"Update check: current={result.CurrentVersion}; latest={result.LatestVersion}; available={result.IsUpdateAvailable}");
             if (result.IsUpdateAvailable)
@@ -681,7 +745,9 @@ public partial class MainWindow : Window
                     await ShowUpdateDialogAsync(
                         "Update available",
                         $"RatioForge v{result.LatestVersion.ToString(3)} is available. You are running v{currentVersion}.",
-                        offerReleaseLink: true);
+                        offerReleaseLink: true,
+                        result.ReleaseNotes,
+                        result.Package is not null && result.Checksum is not null);
                 }
             }
             else if (manual)
@@ -691,7 +757,9 @@ public partial class MainWindow : Window
                 await ShowUpdateDialogAsync(
                     "RatioForge is up to date",
                     $"You are running the latest published version: v{currentVersion}.",
-                    offerReleaseLink: false);
+                    offerReleaseLink: false,
+                    result.ReleaseNotes,
+                    canDownload: false);
             }
         }
         catch (Exception exception)
@@ -704,19 +772,108 @@ public partial class MainWindow : Window
                 await ShowUpdateDialogAsync(
                     "Update check failed",
                     "RatioForge could not contact GitHub. Check your connection and try again.",
-                    offerReleaseLink: false);
+                    offerReleaseLink: false,
+                    string.Empty,
+                    canDownload: false);
             }
         }
     }
 
-    private async Task ShowUpdateDialogAsync(string title, string message, bool offerReleaseLink)
+    private async Task ShowUpdateDialogAsync(
+        string title,
+        string message,
+        bool offerReleaseLink,
+        string releaseNotes,
+        bool canDownload)
     {
-        var dialog = new UpdateCheckWindow(title, message, offerReleaseLink);
-        bool openRelease = await dialog.ShowDialog<bool>(this);
-        if (openRelease)
+        var dialog = new UpdateCheckWindow(title, message, offerReleaseLink, releaseNotes, canDownload);
+        UpdateDialogAction action = await dialog.ShowDialog<UpdateDialogAction>(this);
+        if (action == UpdateDialogAction.OpenRelease)
         {
             OpenWebPage(availableReleaseUrl);
         }
+        else if (action == UpdateDialogAction.Download)
+        {
+            await DownloadUpdateAsync();
+        }
+    }
+
+    private async Task DownloadUpdateAsync()
+    {
+        if (availableUpdate is null)
+        {
+            return;
+        }
+
+        StatusText.Text = "Downloading update...";
+        AddActivity("Downloading the platform-specific update package.");
+        try
+        {
+            string downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            string path = await updateDownloader.DownloadAndVerifyAsync(availableUpdate, downloads);
+            StatusText.Text = "Update downloaded and verified";
+            AddActivity($"Update downloaded and SHA256 verified: {Path.GetFileName(path)}.");
+            AddDebug($"Verified update package: file={path}; version={availableUpdate.LatestVersion}");
+            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        }
+        catch (Exception exception)
+        {
+            StatusText.Text = "Update download failed";
+            AddActivity("ERROR " + exception.Message, force: true);
+            AddDebug($"Update download failed: type={exception.GetType().FullName}; message={exception.Message}");
+        }
+    }
+
+    private void AddAnnounceHistory(string eventName, string trackerUrl, TrackerAnnounceResult result)
+    {
+        string protocol = new Uri(trackerUrl).Scheme.ToUpperInvariant();
+        string status = result.HttpStatusCode?.ToString() ?? (result.IsSuccess ? "OK" : "Error");
+        announceHistory.Insert(0, new AnnounceHistoryRow(
+            DateTime.Now.ToString("HH:mm:ss"),
+            string.IsNullOrWhiteSpace(eventName) ? "update" : eventName,
+            SensitiveDataRedactor.RedactUrl(trackerUrl),
+            protocol,
+            status,
+            $"{result.ElapsedMilliseconds} ms",
+            result.IntervalSeconds is int interval ? $"{interval}s" : "-",
+            SensitiveDataRedactor.Redact(result.Message)));
+        TrimAnnounceHistory();
+    }
+
+    private void AddAnnounceHistory(string eventName, string trackerUrl, Exception exception)
+    {
+        announceHistory.Insert(0, new AnnounceHistoryRow(
+            DateTime.Now.ToString("HH:mm:ss"),
+            string.IsNullOrWhiteSpace(eventName) ? "update" : eventName,
+            SensitiveDataRedactor.RedactUrl(trackerUrl),
+            new Uri(trackerUrl).Scheme.ToUpperInvariant(),
+            "Error",
+            "-",
+            "-",
+            SensitiveDataRedactor.Redact(exception.Message)));
+        TrimAnnounceHistory();
+    }
+
+    private void TrimAnnounceHistory()
+    {
+        while (announceHistory.Count > 500)
+        {
+            announceHistory.RemoveAt(announceHistory.Count - 1);
+        }
+    }
+
+    private void UpdateTrackerDisplay()
+    {
+        if (torrent is null || torrent.Trackers.Count == 0)
+        {
+            TrackerText.Text = "-";
+            return;
+        }
+
+        activeTrackerIndex = Math.Clamp(activeTrackerIndex, 0, torrent.Trackers.Count - 1);
+        TrackerText.Text = torrent.Trackers.Count == 1
+            ? torrent.Trackers[activeTrackerIndex]
+            : $"{torrent.Trackers[activeTrackerIndex]} ({activeTrackerIndex + 1}/{torrent.Trackers.Count})";
     }
 
     private static string FormatLocalAddresses(IEnumerable<string> addresses, AddressFamily family)
@@ -755,4 +912,15 @@ public partial class MainWindow : Window
         OperatingSystem.IsWindows() ? "Windows" :
         OperatingSystem.IsMacOS() ? "macOS" :
         OperatingSystem.IsLinux() ? "Linux" : "Desktop";
+
 }
+
+public sealed record AnnounceHistoryRow(
+    string Time,
+    string Event,
+    string Tracker,
+    string Protocol,
+    string Status,
+    string Latency,
+    string Interval,
+    string Result);
