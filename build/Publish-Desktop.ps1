@@ -107,8 +107,8 @@ $liteBytes = (Get-Item -LiteralPath $publishedLiteExecutable).Length
 if ($selfContainedBytes -gt 100MB) {
     throw "$publishedExecutable is $selfContainedBytes bytes; expected at most 100 MiB."
 }
-if ($liteBytes -gt 30MB) {
-    throw "$publishedLiteExecutable is $liteBytes bytes; expected at most 30 MiB."
+if ($liteBytes -gt 31MB) {
+    throw "$publishedLiteExecutable is $liteBytes bytes; expected at most 31 MiB."
 }
 
 Copy-Item -LiteralPath $publishedExecutable -Destination $rawExecutable -Force

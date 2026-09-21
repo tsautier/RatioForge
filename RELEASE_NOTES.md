@@ -9,7 +9,7 @@ RatioForge 1.2.2 strengthens compatibility testing, profile portability, announc
 - Copy the selected anonymized announce request in one click
 - Cover CDN-style HTTPS passkeys, IPv6 UDP, complex tracker tiers, nested paths, and large multi-file torrents with anonymized fixtures
 - Preserve full relative paths for files inside multi-file torrents
-- Enforce a stricter 30 MiB limit for Lite single-file builds while retaining supported compression for self-contained bundles
+- Enforce a stricter 31 MiB limit for Lite single-file builds across all runtimes while retaining supported compression for self-contained bundles
 - Publish per-runtime JSON metrics for startup time, peak memory, executable sizes, and Lite reduction
 - Verify all 20 release assets and include metrics in each SHA256 manifest
 

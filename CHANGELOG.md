@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release metrics:** Every platform release includes machine-readable startup, peak-memory, executable-size, and Lite-reduction measurements protected by the SHA256 manifest.
 
 ### Changed
-- **Lite size budget:** Framework-dependent single-file executables now have a stricter 30 MiB size budget; self-contained bundles retain supported single-file compression.
+- **Lite size budget:** Framework-dependent single-file executables now have a stricter 31 MiB size budget across all four runtimes; self-contained bundles retain supported single-file compression.
 - **Release verification:** Tagged releases publish and verify 20 assets, including one metrics document for each supported runtime.
 
 ### Fixed
