@@ -1,0 +1,55 @@
+name: Bug report
+description: Report a reproducible RatioForge problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: checkboxes
+    attributes:
+      label: Before submitting
+      options:
+        - label: I tested the latest published release.
+          required: true
+        - label: I removed tracker passkeys, peer IDs, client keys, torrent names, and proxy credentials.
+          required: true
+  - type: input
+    attributes:
+      label: RatioForge version
+      placeholder: 1.2.1
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Operating system
+      options: [Windows, Linux, macOS Intel, macOS Apple silicon, Other]
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Tracker protocol
+      options: [HTTP, HTTPS, UDP, Not applicable]
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Describe the observed and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Open...
+        2. Select...
+        3. Start...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Redacted diagnostics
+      description: Use Help > Copy diagnostics and verify that no private tracker data remains.
+      render: text
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Screenshots, frequency, and whether the previous release behaved differently.

@@ -5,6 +5,28 @@ All notable changes to RatioForge will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-09-21
+
+### Added
+- **History export and filters:** Announce records can be filtered by event, protocol, and outcome, then exported as privacy-filtered CSV or JSON.
+- **Manual tracker control:** Users can choose any tracker candidate from `announce-list` and retry it immediately during an active session.
+- **External client catalog:** Modern emulations are loaded from an embedded `clients.json`; a platform application-data file can add or replace profiles without rebuilding RatioForge.
+- **Modern profiles:** Added qBittorrent 5.1.4 and 4.6.7, uTorrent 3.6.0 build 46828, 3.5.5 and 3.5.4, BitTorrent 7.10.3, Transmission 2.94 and 3.00, Deluge 2.1.1, Vuze 5.7.5.0, and rTorrent 0.9.6.
+- **Project support:** Added structured GitHub bug and feature forms, private vulnerability reporting guidance, and an upstream compatibility audit.
+
+### Changed
+- **No-leecher safety:** Upload accounting pauses when the tracker explicitly reports zero leechers and resumes automatically when leechers return. The setting is enabled by default and persists in session profiles.
+- **Tracker identity:** Generated uTorrent and BitTorrent keys rotate every ten minutes while a session runs.
+- **Diagnostics privacy:** Local/source network addresses and proxy usernames are redacted from support diagnostics and history exports.
+
+### Fixed
+- **Stopped announces:** HTTP, HTTPS, and UDP stopped events now request zero peers.
+- **Peer ID bytes:** Arbitrary client Peer ID bytes use the inclusive range 1-255, preventing NUL bytes and allowing `0xff`.
+- **Transmission fingerprint:** Transmission Peer IDs now carry their base-36 check digit and use the client's variable-length hexadecimal announce key.
+
+### Security
+- **Disclosure process:** Added `SECURITY.md` and directed sensitive reports to GitHub private vulnerability reporting.
+
 ## [1.2.0] - 2026-09-15
 
 ### Added
@@ -347,6 +369,8 @@ For complete historical changelog, see [HISTORY.TXT](HISTORY.TXT)
 
 [1.1.2]: https://github.com/tsautier/RatioForge/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/tsautier/RatioForge/compare/v1.1.0...v1.1.1
+[1.2.1]: https://github.com/tsautier/RatioForge/releases/tag/v1.2.1
+[1.2.0]: https://github.com/tsautier/RatioForge/releases/tag/v1.2.0
 [1.1.0]: https://github.com/tsautier/RatioForge/releases/tag/v1.1.0
 [1.0.14]: https://github.com/tsautier/RatioForge/releases/tag/v1.0.14
 [1.0.13]: https://github.com/tsautier/RatioForge/releases/tag/v1.0.13

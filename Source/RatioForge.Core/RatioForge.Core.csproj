@@ -11,6 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="clients.json" LogicalName="RatioForge.clients.json" />
     <Compile Include="..\RatioForge\BitTorrent\**\*.cs" Link="BitTorrent\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\RatioForge\RandomStringGenerator.cs" Link="Legacy\RandomStringGenerator.cs" />
     <Compile Include="..\RatioForge\TorrentClient.cs" Link="Legacy\TorrentClient.cs" />

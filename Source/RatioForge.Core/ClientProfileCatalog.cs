@@ -1,12 +1,14 @@
 namespace RatioForge;
 
+using System.Text.Json;
+
 /// <summary>Provides the torrent client identities supported by RatioForge.</summary>
 public static class ClientProfileCatalog
 {
     /// <summary>The latest stable qBittorrent identity verified by the project.</summary>
     public const string DefaultProfileName = "qBittorrent 5.2.3";
 
-    private static readonly string[] Names =
+    private static readonly string[] LegacyNames =
     [
         "qBittorrent 5.2.3", "qBittorrent 5.1.3", "qBittorrent 5.1.2", "qBittorrent 4.6.3",
         "qBittorrent 4.5.5", "qBittorrent 4.4.5", "qBittorrent 4.2.3", "Transmission 4.1.3",
@@ -23,13 +25,44 @@ public static class ClientProfileCatalog
         "BitSpirit 3.6.0.200", "BitSpirit 3.1.0.077", "Gnome BT 0.0.28-1"
     ];
 
-    /// <summary>Gets all supported identities, with current clients first.</summary>
-    public static IReadOnlyList<ClientProfile> All { get; } = Names.Select(CreateProfile).ToArray();
+    private static readonly JsonSerializerOptions SerializerOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
+    static ClientProfileCatalog()
+    {
+        IReadOnlyList<ClientProfileDefinition> definitions = LoadDefinitions();
+        var profiles = definitions.Select(definition => new ClientProfile(
+            definition.Name,
+            definition.UserAgent,
+            definition.DefaultPeerCount,
+            definition)).ToList();
+        foreach (string name in LegacyNames.Where(name => profiles.All(profile => profile.Name != name)))
+        {
+            profiles.Add(CreateLegacyProfile(name));
+        }
+
+        All = profiles;
+        Default = All.Single(profile => profile.Name == DefaultProfileName);
+    }
+
+    /// <summary>Path of the optional user catalog that adds or replaces profiles at startup.</summary>
+    public static string UserCatalogPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "RatioForge",
+        "clients.json");
+
+    /// <summary>Gets a warning when a custom catalog was ignored.</summary>
+    public static string LoadWarning { get; private set; } = string.Empty;
+
+    /// <summary>Gets all supported identities, with current data-driven clients first.</summary>
+    public static IReadOnlyList<ClientProfile> All { get; }
 
     /// <summary>Gets the identity selected for a new tracker session.</summary>
-    public static ClientProfile Default { get; } = All.Single(profile => profile.Name == DefaultProfileName);
+    public static ClientProfile Default { get; }
 
-    private static ClientProfile CreateProfile(string name)
+    private static ClientProfile CreateLegacyProfile(string name)
     {
         TorrentClient client = TorrentClientFactory.GetClient(name);
         const string marker = "User-Agent: ";
@@ -44,5 +77,77 @@ public static class ClientProfileCatalog
         }
 
         return new ClientProfile(name, userAgent, client.DefNumWant);
+    }
+
+    private static IReadOnlyList<ClientProfileDefinition> LoadDefinitions()
+    {
+        using Stream stream = typeof(ClientProfileCatalog).Assembly.GetManifestResourceStream("RatioForge.clients.json")
+            ?? throw new InvalidOperationException("The embedded client catalog is missing.");
+        using var reader = new StreamReader(stream);
+        ClientCatalogDocument builtIn = Deserialize(reader.ReadToEnd());
+        if (!File.Exists(UserCatalogPath))
+        {
+            return ValidateAndMerge(builtIn.Clients, []);
+        }
+
+        try
+        {
+            ClientCatalogDocument custom = Deserialize(File.ReadAllText(UserCatalogPath));
+            return ValidateAndMerge(builtIn.Clients, custom.Clients);
+        }
+        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            LoadWarning = $"Custom clients.json ignored: {exception.Message}";
+            return ValidateAndMerge(builtIn.Clients, []);
+        }
+    }
+
+    private static ClientCatalogDocument Deserialize(string json) =>
+        JsonSerializer.Deserialize<ClientCatalogDocument>(json, SerializerOptions)
+        ?? throw new InvalidDataException("The client catalog is empty.");
+
+    private static IReadOnlyList<ClientProfileDefinition> ValidateAndMerge(
+        IEnumerable<ClientProfileDefinition> builtIn,
+        IEnumerable<ClientProfileDefinition> custom)
+    {
+        var merged = builtIn.ToList();
+        foreach (ClientProfileDefinition definition in custom)
+        {
+            if (definition is null)
+            {
+                throw new InvalidDataException("The client catalog contains a null entry.");
+            }
+
+            definition.Validate();
+            int index = merged.FindIndex(item => item.Name.Equals(definition.Name, StringComparison.Ordinal));
+            if (index >= 0)
+            {
+                merged[index] = definition;
+            }
+            else
+            {
+                merged.Add(definition);
+            }
+        }
+
+        foreach (ClientProfileDefinition definition in merged)
+        {
+            definition.Validate();
+        }
+
+        if (merged.GroupBy(item => item.Name, StringComparer.Ordinal).Any(group => group.Count() > 1))
+        {
+            throw new InvalidDataException("The client catalog contains duplicate names.");
+        }
+
+        return merged;
+    }
+
+    internal static IReadOnlyList<ClientProfileDefinition> ParseDefinitions(string json) =>
+        ValidateAndMerge(Deserialize(json).Clients, []);
+
+    private sealed class ClientCatalogDocument
+    {
+        public List<ClientProfileDefinition> Clients { get; init; } = [];
     }
 }

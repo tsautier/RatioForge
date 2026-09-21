@@ -23,6 +23,7 @@ public sealed class DesktopWindowTests
             Assert.That(window.FindControl<TextBlock>("ElapsedText")?.Text, Is.EqualTo("Elapsed 00:00:00"));
             Assert.That(window.FindControl<Button>("ManualUpdateButton")?.IsEnabled, Is.False);
             Assert.That(window.FindControl<Button>("ResetSessionButton")?.IsEnabled, Is.False);
+            Assert.That(window.FindControl<Button>("RetryTrackerButton")?.IsEnabled, Is.False);
             Assert.That(activity.Any(entry => entry.Contains("DEBUG Application started", StringComparison.Ordinal)), Is.True);
         });
     }
@@ -35,6 +36,7 @@ public sealed class DesktopWindowTests
         Assert.Multiple(() =>
         {
             Assert.That(window.FindControl<CheckBox>("StopOnTrackerFailureCheck")?.IsChecked, Is.True);
+            Assert.That(window.FindControl<CheckBox>("PauseUploadWhenNoLeechersCheck")?.IsChecked, Is.True);
             Assert.That(window.FindControl<ComboBox>("StopConditionCombo")?.SelectedIndex, Is.Zero);
             Assert.That(window.FindControl<NumericUpDown>("StopValueBox")?.IsEnabled, Is.False);
         });
@@ -101,6 +103,30 @@ public sealed class DesktopWindowTests
         {
             Assert.That(window.FindControl<ListBox>("AnnounceHistoryList"), Is.Not.Null);
             Assert.That(window.FindControl<ListBox>("AnnounceHistoryList")?.ItemsSource, Is.Not.Null);
+            Assert.That(window.FindControl<ComboBox>("HistoryEventFilter"), Is.Not.Null);
+            Assert.That(window.FindControl<ComboBox>("HistoryProtocolFilter"), Is.Not.Null);
+            Assert.That(window.FindControl<ComboBox>("HistoryStatusFilter"), Is.Not.Null);
+        });
+    }
+
+    [Test]
+    public void HistoryExportsShouldRedactSecretsAndRemainMachineReadable()
+    {
+        AnnounceHistoryRow[] entries =
+        [
+            new("12:00:00", "started", "https://tracker.example/abcdef0123456789abcdef0123456789/announce?token=secret", "HTTPS", "200", "10 ms", "900s", "key=ABC peer_id=private"),
+        ];
+
+        string csv = AnnounceHistoryExporter.ToCsv(entries);
+        string json = AnnounceHistoryExporter.ToJson(entries);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(csv, Does.Contain("Time,Event,Tracker"));
+            Assert.That(csv, Does.Not.Contain("abcdef0123456789abcdef0123456789"));
+            Assert.That(csv, Does.Not.Contain("secret"));
+            Assert.That(json, Does.Contain("REDACTED"));
+            Assert.That(json, Does.Not.Contain("peer_id=private"));
         });
     }
 

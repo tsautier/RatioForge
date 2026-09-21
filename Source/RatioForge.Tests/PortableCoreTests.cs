@@ -34,9 +34,9 @@ public class PortableCoreTests
     }
 
     [Test]
-    public void ClientProfileCatalogShouldExposeEveryLegacyIdentity()
+    public void ClientProfileCatalogShouldExposeLegacyAndDataDrivenIdentities()
     {
-        Assert.That(ClientProfileCatalog.All, Has.Count.EqualTo(54));
+        Assert.That(ClientProfileCatalog.All, Has.Count.GreaterThanOrEqualTo(54));
         Assert.That(ClientProfileCatalog.All.Select(profile => profile.Name), Does.Contain("qBittorrent 5.2.3"));
         Assert.That(ClientProfileCatalog.All.All(profile => !string.IsNullOrWhiteSpace(profile.UserAgent)), Is.True);
     }
@@ -270,6 +270,21 @@ public class PortableCoreTests
             Assert.That(redacted, Does.Not.Contain(torrentName));
             Assert.That(redacted, Does.Contain("[torrent name redacted]"));
             Assert.That(redacted, Does.Not.Contain("0123456789abcdef0123456789abcdef"));
+        });
+    }
+
+    [Test]
+    public void DiagnosticRedactorShouldRemoveLocalNetworkAndProxyIdentity()
+    {
+        string redacted = SensitiveDataRedactor.Redact(
+            "source_address=192.168.1.20 local_ip=2001:db8::42 local_addresses=10.0.0.1,127.0.0.1 proxy_username=alice");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(redacted, Does.Not.Contain("192.168.1.20"));
+            Assert.That(redacted, Does.Not.Contain("2001:db8::42"));
+            Assert.That(redacted, Does.Not.Contain("10.0.0.1"));
+            Assert.That(redacted, Does.Not.Contain("alice"));
         });
     }
 

@@ -31,7 +31,7 @@ namespace RatioForge
             {
                 if (randomness)
                 {
-                    stringBuilder.Append((char)this.randomNumbersGenerator.Next(255));
+                    stringBuilder.Append((char)this.randomNumbersGenerator.Next(1, 256));
                 }
                 else
                 {

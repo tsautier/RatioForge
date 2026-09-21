@@ -25,7 +25,7 @@ public static class SensitiveDataRedactor
         TimeSpan.FromSeconds(1));
 
     private static readonly Regex AssignmentPattern = new(
-        @"(?<![a-z0-9_])(?<key>password|passkey|token|api_?key|authkey|secret|key|peer_?id|info_?hash)\s*(?<separator>[=:])\s*[^\s;&]+",
+        @"(?<![a-z0-9_])(?<key>password|passkey|token|api_?key|authkey|secret|key|peer[ _]?id|info[ _]?hash|local[ _]?ip|local[ _]?addresses|source[ _]?address|proxy[ _]?username)\s*(?<separator>[=:])\s*[^\s;&]+",
         RegexOptions.Compiled | RegexOptions.IgnoreCase,
         TimeSpan.FromSeconds(1));
 

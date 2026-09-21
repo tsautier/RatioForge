@@ -33,6 +33,11 @@ Completed in 1.2.0 on 2026-09-15.
 Additional 1.2.x maintenance:
 
 - Add a dedicated .NET CLI project if command-line automation is needed.
+- Completed in 1.2.1: announce filters and privacy-filtered CSV/JSON exports.
+- Completed in 1.2.1: manual tracker selection and immediate retry.
+- Completed in 1.2.1: security policy, structured issue forms, and expanded redaction tests.
+- Completed in 1.2.1: data-driven modern client profiles with application-data overrides.
+- Completed in 1.2.1: upstream compatibility audit and applicable announce/identity safety fixes.
 - Completed in 1.2.0: structured announce history covers tracker communication and readable diagnostics cover common network and proxy failures.
 - Continue improving error handling as new tracker and malformed torrent cases are reported.
 - Completed early: sample torrent fixtures now cover parser and tracker behavior; continue extending them when regressions are found.
@@ -44,7 +49,7 @@ Additional 1.2.x maintenance:
 
 - Completed early: the tracker engine and torrent parser now live in the reusable `RatioForge.Core` library.
 - Completed early: the Avalonia UI refresh preserves the lightweight tracker-session workflow across desktop platforms.
-- Add a documented plugin or profile system for torrent client emulation data.
+- Completed in 1.2.1: documented data-driven profile system for torrent client emulation data.
 - Build a dedicated .NET CLI executable if command-line workflows become part of the product.
 - Extend automated compatibility testing beyond the current Windows, Ubuntu, macOS Intel, and macOS Apple Silicon runners.
-- Define a security and disclosure policy for tracker, proxy, and release-distribution issues.
+- Completed in 1.2.1: security and disclosure policy for tracker, proxy, and release-distribution issues.

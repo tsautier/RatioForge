@@ -90,7 +90,9 @@ internal static class UdpTrackerClient
         BinaryPrimitives.WriteInt32BigEndian(packet.AsSpan(80, 4), EventCode(options.Event));
         BinaryPrimitives.WriteInt32BigEndian(packet.AsSpan(84, 4), 0);
         BinaryPrimitives.WriteInt32BigEndian(packet.AsSpan(88, 4), StableKey(identity.Key));
-        BinaryPrimitives.WriteInt32BigEndian(packet.AsSpan(92, 4), options.PeerCount);
+        BinaryPrimitives.WriteInt32BigEndian(
+            packet.AsSpan(92, 4),
+            options.Event.Equals("stopped", StringComparison.OrdinalIgnoreCase) ? 0 : options.PeerCount);
         BinaryPrimitives.WriteUInt16BigEndian(packet.AsSpan(96, 2), checked((ushort)options.Port));
         return packet;
     }

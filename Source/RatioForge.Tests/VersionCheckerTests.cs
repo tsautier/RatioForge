@@ -12,7 +12,7 @@ namespace RatioForge.Tests
         [Test]
         public void CheckNewVersionShouldDetectNewerSemanticVersion()
         {
-            var versionChecker = new VersionChecker(string.Empty, () => "1.2.1");
+            var versionChecker = new VersionChecker(string.Empty, () => "1.2.2");
 
             var hasNewVersion = versionChecker.CheckNewVersion();
 
@@ -35,8 +35,8 @@ namespace RatioForge.Tests
         {
             Assert.Multiple((Action)(() =>
             {
-                Assert.That(VersionChecker.PublicVersion, Is.EqualTo("1.2.0"));
-                Assert.That(VersionChecker.ReleaseDate, Is.EqualTo("15-09-2026"));
+                Assert.That(VersionChecker.PublicVersion, Is.EqualTo("1.2.1"));
+                Assert.That(VersionChecker.ReleaseDate, Is.EqualTo("21-09-2026"));
             }));
         }
     }

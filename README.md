@@ -11,7 +11,7 @@
 
 - **Standalone Application**: Does NOT rely on your BitTorrent client (uTorrent, qBittorrent, etc.)
 - **No Real Transfer**: Does NOT download/upload actual files - only simulates stats
-- **Wide Client Support**: Hardcoded emulations for popular BitTorrent clients:
+- **Wide Client Support**: Data-driven emulations for popular BitTorrent clients:
   - uTorrent (multiple versions)
   - BitComet, Azureus/Vuze, BiglyBT
   - ABC, BitLord, BTuga
@@ -22,7 +22,7 @@
 - **Persistent settings**: Cross-platform session defaults and named profiles, automatic/dark/light appearance, IPv4/IPv6 source selection, HTTP/SOCKS5 proxy, speed randomization, activity logging, and opt-in debug logs
 - **Release updates**: Automatic and manual checks with release notes, platform-aware downloads, and SHA256 verification
 - **Session controls**: Immediate manual announces, clean reset, lifecycle events, live completion/ratio/time, and configurable automatic stopping
-- **Diagnostics**: Privacy-filtered activity/debug logs, structured announce history, and pre-session DNS/IP/TLS/proxy checks
+- **Diagnostics**: Privacy-filtered activity/debug logs, filterable CSV/JSON announce history, and pre-session DNS/IP/TLS/proxy checks
 - **Cross-platform**: Native desktop builds for Windows, Linux, and macOS
 - **Tracker networking**: HTTP, HTTPS, and UDP trackers over IPv4 or IPv6, `announce-list` tiers, failover, automatic routing, and explicit local-address binding
 - **Modernized**: Rebuilt for .NET 10 and Avalonia UI
@@ -80,17 +80,40 @@ dotnet test Source/RatioForge.sln
 
 For support, use the built-in Help menu to open the GitHub repository or create an issue.
 
-## What's New in 1.2.0 (RatioForge)
+### Custom client profiles
 
-- **Announce history**: Inspect each attempt's event, tracker, protocol, status, latency, interval, and result
-- **Network checks**: Diagnose DNS, IPv4, IPv6, TCP, TLS, proxy, and UDP connectivity before starting
-- **Tracker failover**: Use ordered `announce-list` tiers and show the active tracker
-- **UDP support**: Announce to BEP 15 trackers over IPv4 and IPv6
-- **Session profiles**: Save and restore named client, speed, network, proxy, and randomization configurations
-- **Verified updates**: View release notes and download the correct platform archive with size and SHA256 validation
+RatioForge loads its built-in emulations from `clients.json`. To add or replace a profile without rebuilding, create `clients.json` in the configuration folder shown in Settings. Existing names are replaced; new names are appended when RatioForge next starts.
+
+```json
+{
+  "clients": [
+    {
+      "name": "ExampleClient 1.0",
+      "userAgent": "ExampleClient/1.0",
+      "defaultPeerCount": 200,
+      "key": { "kind": "Hex", "length": 8, "upperCase": true },
+      "peerIdPrefix": "-EX1000-",
+      "peerId": { "kind": "UrlSafe", "length": 12 },
+      "headers": ["Host: {host}", "User-Agent: ExampleClient/1.0", "Connection: close"],
+      "query": "info_hash={infohash}&peer_id={peerid}&port={port}&uploaded={uploaded}&downloaded={downloaded}&left={left}&key={key}{event}&numwant={numwant}&compact=1"
+    }
+  ]
+}
+```
+
+Supported random kinds are `Alphanumeric`, `LowerAlphanumeric`, `Numeric`, `Hex`, `Random`, `UrlSafe`, `TransmissionChecksum`, and `HexRange`. A malformed custom file is ignored, reported in Activity, and never replaces the built-in catalog.
+
+## What's New in 1.2.1 (RatioForge)
+
+- **Tracker control**: Select an `announce-list` candidate manually and retry it immediately
+- **History exports**: Filter announces and export redacted CSV or JSON records
+- **Safer accounting**: Pause upload while the tracker explicitly reports zero leechers
+- **Accurate identities**: Correct stopped announces, random Peer ID bytes, Transmission checksums, and timed uTorrent/BitTorrent key rotation
+- **External client profiles**: Modern emulations live in `clients.json`; `%APPDATA%/RatioForge/clients.json` (or the platform application-data equivalent) can add or replace profiles at startup
+- **Project support**: Structured GitHub bug and feature forms plus a private security-reporting policy
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.
-The source evidence for current emulation signatures is recorded in the [2026 client profile audit](docs/client-profile-audit-2026-08-11.md).
+The current compatibility review is recorded in the [September 2026 client profile audit](docs/client-profile-audit-2026-09-21.md).
 
 ## History
 

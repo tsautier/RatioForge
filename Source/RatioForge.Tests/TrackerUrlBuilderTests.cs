@@ -29,6 +29,18 @@ namespace RatioForge.Tests
             }));
         }
 
+        [Test]
+        public void StoppedAnnounceShouldRequestNoPeers()
+        {
+            TorrentClient client = TorrentClientFactory.GetClient("qBittorrent 5.2.3");
+            var torrent = CreateTorrentInfo("https://tracker.example/announce");
+            torrent.numberOfPeers = "200";
+
+            string result = TrackerUrlBuilder.BuildAnnounce(torrent, client, "&event=stopped", string.Empty);
+
+            Assert.That(result, Does.Contain("&event=stopped&numwant=0"));
+        }
+
         [TestCase("Deluge 2.2.0")]
         [TestCase("Deluge 1.3.15")]
         [TestCase("Deluge 1.2.0")]

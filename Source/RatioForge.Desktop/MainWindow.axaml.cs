@@ -20,6 +20,7 @@ public partial class MainWindow : Window
     private const string LatestReleaseUrl = RepositoryUrl + "/releases/latest";
     private readonly ObservableCollection<string> activity = [];
     private readonly ObservableCollection<AnnounceHistoryRow> announceHistory = [];
+    private readonly ObservableCollection<AnnounceHistoryRow> filteredAnnounceHistory = [];
     private readonly DispatcherTimer timer;
     private readonly TrackerAnnounceClient announceClient = new();
     private readonly ReleaseUpdateChecker updateChecker = new();
@@ -43,13 +44,21 @@ public partial class MainWindow : Window
     private string availableReleaseUrl = LatestReleaseUrl;
     private ReleaseUpdateResult? availableUpdate;
     private int activeTrackerIndex;
+    private DateTimeOffset clientKeyGeneratedAt;
+    private int? lastKnownLeechers;
 
     public MainWindow()
     {
         InitializeComponent();
         settings = ApplicationSettingsStore.Load();
         ActivityList.ItemsSource = activity;
-        AnnounceHistoryList.ItemsSource = announceHistory;
+        AnnounceHistoryList.ItemsSource = filteredAnnounceHistory;
+        HistoryEventFilter.ItemsSource = new[] { "All events", "started", "update", "completed", "stopped" };
+        HistoryProtocolFilter.ItemsSource = new[] { "All protocols", "HTTP", "HTTPS", "UDP" };
+        HistoryStatusFilter.ItemsSource = new[] { "All statuses", "Success", "Error" };
+        HistoryEventFilter.SelectedIndex = 0;
+        HistoryProtocolFilter.SelectedIndex = 0;
+        HistoryStatusFilter.SelectedIndex = 0;
         ClientCombo.ItemsSource = ClientProfileCatalog.All;
         ApplySettings();
         PlatformText.Text = $".NET 10 / {GetPlatformName()}";
@@ -63,6 +72,11 @@ public partial class MainWindow : Window
         AddDebug($"Runtime: framework={RuntimeInformation.FrameworkDescription}; process_architecture={RuntimeInformation.ProcessArchitecture}; os_architecture={RuntimeInformation.OSArchitecture}; processors={Environment.ProcessorCount}");
         AddDebug($"Network: ipv6_supported={Socket.OSSupportsIPv6}; local_addresses={string.Join(',', NetworkAddressCatalog.GetLocalAddresses())}");
         AddDebug($"Settings: client={settings.DefaultProfileName}; source_address={(string.IsNullOrEmpty(settings.LocalAddress) ? "automatic" : settings.LocalAddress)}; port={settings.Port}; peers={settings.PeerCount}; interval={settings.IntervalSeconds}; proxy={settings.ProxyMode}; random_upload={settings.RandomizeUpload}; random_download={settings.RandomizeDownload}");
+        if (!string.IsNullOrEmpty(ClientProfileCatalog.LoadWarning))
+        {
+            AddActivity(ClientProfileCatalog.LoadWarning, force: true);
+            AddDebug(ClientProfileCatalog.LoadWarning);
+        }
         Opened += async (_, _) => await CheckForUpdatesAsync(manual: false);
         Closing += MainWindow_Closing;
         Closed += (_, _) =>
@@ -163,6 +177,7 @@ public partial class MainWindow : Window
             torrent = loadedTorrent;
             activeTrackerIndex = 0;
             announceHistory.Clear();
+            ApplyHistoryFilter();
             ResetTransferCounters();
             ResetSessionButton.IsEnabled = true;
             TorrentPathBox.Text = torrent.FilePath;
@@ -194,6 +209,7 @@ public partial class MainWindow : Window
         UserAgentText.Text = profile.UserAgent;
         PeerCountBox.Value = profile.DefaultPeerCount;
         clientIdentity = profile.CreateIdentity();
+        clientKeyGeneratedAt = DateTimeOffset.UtcNow;
         ClientKeyBox.Text = clientIdentity.Key;
         PeerIdBox.Text = clientIdentity.PeerId;
         AddDebug($"Client identity generated: client={profile.Name}; key={clientIdentity.Key}; peer_id={clientIdentity.PeerId}");
@@ -225,8 +241,10 @@ public partial class MainWindow : Window
         initialCompletedBytes = (long)(torrent.TotalSize * ((double)(CompletedBox.Value ?? 0) / 100d));
         downloaded = 0;
         completionAnnounced = initialCompletedBytes >= torrent.TotalSize;
+        lastKnownLeechers = null;
         ResetSessionButton.IsEnabled = true;
         sessionStarted = DateTimeOffset.UtcNow;
+        clientKeyGeneratedAt = sessionStarted;
         lastCounterUpdate = sessionStarted;
         UpdateTransferDisplay(sessionStarted);
         SetSessionActive(true);
@@ -255,6 +273,31 @@ public partial class MainWindow : Window
         string eventName = completed ? "completed" : string.Empty;
         completionAnnounced |= completed;
         TrackerAnnounceResult? result = await SendAnnounceAsync(eventName, sessionCancellation.Token);
+        await HandleTrackerRejectionAsync(result);
+    }
+
+    private void TrackerCombo_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (torrent is null || TrackerCombo.SelectedIndex < 0 || TrackerCombo.SelectedIndex >= torrent.Trackers.Count)
+        {
+            return;
+        }
+
+        activeTrackerIndex = TrackerCombo.SelectedIndex;
+        UpdateTrackerDisplay();
+        AddDebug($"Tracker selected manually: candidate={activeTrackerIndex + 1}/{torrent.Trackers.Count}; tracker={torrent.Trackers[activeTrackerIndex]}");
+    }
+
+    private async void RetryTracker_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sessionCancellation is null || announcing)
+        {
+            return;
+        }
+
+        UpdateTransferCounters(DateTimeOffset.UtcNow);
+        AddActivity($"Retrying tracker candidate {activeTrackerIndex + 1}.");
+        TrackerAnnounceResult? result = await SendAnnounceAsync(string.Empty, sessionCancellation.Token);
         await HandleTrackerRejectionAsync(result);
     }
 
@@ -304,6 +347,8 @@ public partial class MainWindow : Window
         OpenTorrentButton.IsEnabled = !active;
         SettingsButton.IsEnabled = !active;
         ClientCombo.IsEnabled = !active;
+        TrackerCombo.IsEnabled = torrent is not null && !announcing;
+        RetryTrackerButton.IsEnabled = active && !announcing;
         AddressCombo.IsEnabled = !active;
         PortBox.IsEnabled = !active;
         PeerCountBox.IsEnabled = !active;
@@ -352,6 +397,7 @@ public partial class MainWindow : Window
         uploaded = 0;
         downloaded = 0;
         initialCompletedBytes = 0;
+        lastKnownLeechers = null;
         CompletedBox.Value = 0;
         UploadedText.Text = FormatBytes(0);
         DownloadedText.Text = FormatBytes(0);
@@ -409,7 +455,11 @@ public partial class MainWindow : Window
         bool wasComplete = torrent is not null && initialCompletedBytes + downloaded >= torrent.TotalSize;
         double seconds = Math.Max(0, (now - lastCounterUpdate).TotalSeconds);
         lastCounterUpdate = now;
-        uploaded += (long)((double)(UploadRateBox.Value ?? 0) * 1024d * seconds);
+        bool uploadPaused = SessionUploadPolicy.IsPaused(settings.PauseUploadWhenNoLeechers, lastKnownLeechers);
+        if (!uploadPaused)
+        {
+            uploaded += (long)((double)(UploadRateBox.Value ?? 0) * 1024d * seconds);
+        }
         downloaded += (long)((double)(DownloadRateBox.Value ?? 0) * 1024d * seconds);
         if (torrent is not null)
         {
@@ -449,6 +499,7 @@ public partial class MainWindow : Window
         StatusText.Text = "Contacting tracker...";
         try
         {
+            RotateClientKeyIfRequired(profile);
             IReadOnlyList<string> trackers = torrent.Trackers;
             TrackerAnnounceResult? result = null;
             Exception? finalException = null;
@@ -511,6 +562,10 @@ public partial class MainWindow : Window
             nextAnnounce = DateTimeOffset.UtcNow.AddSeconds(interval);
             AddDebug($"Tracker response: status={FormatOptional(result.HttpStatusCode)}; protocol={result.HttpVersion}; server={EmptyAsUnknown(result.Server)}; content_type={EmptyAsUnknown(result.ContentType)}; content_length={FormatOptional(result.ContentLength)}; latency_ms={result.ElapsedMilliseconds}; final_url={SensitiveDataRedactor.RedactUrl(result.FinalUrl)}");
             AddDebug($"Tracker statistics: complete={FormatOptional(result.Complete)}; incomplete={FormatOptional(result.Incomplete)}; ipv4_peers={FormatOptional(result.Ipv4Peers)}; ipv6_peers={FormatOptional(result.Ipv6Peers)}; interval={FormatOptional(result.IntervalSeconds)}; min_interval={FormatOptional(result.MinimumIntervalSeconds)}");
+            if (result.IsSuccess)
+            {
+                UpdateLeecherState(result.Incomplete);
+            }
             StatusText.Text = result.IsSuccess ? "Tracker accepted announce" : "Tracker rejected announce";
             AddActivity($"{(result.IsSuccess ? "OK" : "ERROR")} {result.Message} Next announce in {interval}s.");
             AddDebug($"Announce response: success={result.IsSuccess}; interval={interval}; message={result.Message}");
@@ -546,8 +601,47 @@ public partial class MainWindow : Window
                 announcing = false;
                 ManualUpdateButton.IsEnabled = sessionCancellation is { IsCancellationRequested: false };
                 ResetSessionButton.IsEnabled = torrent is not null && !announcing;
+                TrackerCombo.IsEnabled = torrent is not null && !announcing;
+                RetryTrackerButton.IsEnabled = sessionCancellation is { IsCancellationRequested: false } && !announcing;
             }
         }
+    }
+
+    private void RotateClientKeyIfRequired(ClientProfile profile)
+    {
+        if (profile.KeyRefreshMinutes <= 0 || clientIdentity is null ||
+            DateTimeOffset.UtcNow - clientKeyGeneratedAt < TimeSpan.FromMinutes(profile.KeyRefreshMinutes))
+        {
+            return;
+        }
+
+        string key = profile.CreateIdentity().Key;
+        clientIdentity = clientIdentity with { Key = key };
+        clientKeyGeneratedAt = DateTimeOffset.UtcNow;
+        ClientKeyBox.Text = key;
+        AddDebug($"Client tracker key rotated: client={profile.Name}; key={key}");
+    }
+
+    private void UpdateLeecherState(int? leechers)
+    {
+        if (leechers is null || leechers == lastKnownLeechers)
+        {
+            return;
+        }
+
+        bool wasPaused = SessionUploadPolicy.IsPaused(settings.PauseUploadWhenNoLeechers, lastKnownLeechers);
+        lastKnownLeechers = leechers;
+        bool isPaused = SessionUploadPolicy.IsPaused(settings.PauseUploadWhenNoLeechers, leechers);
+        if (isPaused && !wasPaused)
+        {
+            AddActivity("Upload paused because the tracker reports no leechers.");
+        }
+        else if (!isPaused && wasPaused)
+        {
+            AddActivity($"Upload resumed because the tracker reports {leechers} leechers.");
+        }
+
+        AddDebug($"Swarm state updated: leechers={leechers}; upload_paused={isPaused}");
     }
 
     private async Task<bool> HandleTrackerRejectionAsync(TrackerAnnounceResult? result)
@@ -662,7 +756,7 @@ public partial class MainWindow : Window
             .AppendLine($"Theme: {settings.ThemeMode}")
             .AppendLine($"Activity log: {settings.EnableActivityLog}; debug log: {settings.EnableDebugLog}")
             .AppendLine($"Client: {(ClientCombo.SelectedItem as ClientProfile)?.Name ?? "none"}")
-            .AppendLine($"Source address: {AddressCombo.SelectedItem ?? "Automatic (IPv4 / IPv6)"}")
+            .AppendLine(SensitiveDataRedactor.Redact($"Source address: {AddressCombo.SelectedItem ?? "Automatic (IPv4 / IPv6)"}"))
             .AppendLine($"Tracker: {SensitiveDataRedactor.RedactUrl(torrent is null || torrent.Trackers.Count == 0 ? null : torrent.Trackers[activeTrackerIndex])}")
             .AppendLine($"Tracker candidates: {torrent?.Trackers.Count ?? 0}")
             .AppendLine($"Session profile: {settings.SelectedSessionProfileName}")
@@ -704,6 +798,7 @@ public partial class MainWindow : Window
     {
         activity.Clear();
         announceHistory.Clear();
+        ApplyHistoryFilter();
         AddActivity("Activity cleared.");
     }
 
@@ -838,6 +933,7 @@ public partial class MainWindow : Window
             result.IntervalSeconds is int interval ? $"{interval}s" : "-",
             SensitiveDataRedactor.Redact(result.Message)));
         TrimAnnounceHistory();
+        ApplyHistoryFilter();
     }
 
     private void AddAnnounceHistory(string eventName, string trackerUrl, Exception exception)
@@ -852,6 +948,7 @@ public partial class MainWindow : Window
             "-",
             SensitiveDataRedactor.Redact(exception.Message)));
         TrimAnnounceHistory();
+        ApplyHistoryFilter();
     }
 
     private void TrimAnnounceHistory()
@@ -867,6 +964,9 @@ public partial class MainWindow : Window
         if (torrent is null || torrent.Trackers.Count == 0)
         {
             TrackerText.Text = "-";
+            TrackerCombo.ItemsSource = null;
+            TrackerCombo.IsEnabled = false;
+            RetryTrackerButton.IsEnabled = false;
             return;
         }
 
@@ -874,6 +974,62 @@ public partial class MainWindow : Window
         TrackerText.Text = torrent.Trackers.Count == 1
             ? torrent.Trackers[activeTrackerIndex]
             : $"{torrent.Trackers[activeTrackerIndex]} ({activeTrackerIndex + 1}/{torrent.Trackers.Count})";
+        TrackerCombo.ItemsSource = torrent.Trackers.Select((tracker, index) =>
+            $"{index + 1}. {SensitiveDataRedactor.RedactUrl(tracker)}").ToArray();
+        TrackerCombo.SelectedIndex = activeTrackerIndex;
+        TrackerCombo.IsEnabled = !announcing;
+        RetryTrackerButton.IsEnabled = sessionCancellation is { IsCancellationRequested: false } && !announcing;
+    }
+
+    private void HistoryFilter_SelectionChanged(object? sender, SelectionChangedEventArgs e) => ApplyHistoryFilter();
+
+    private void ApplyHistoryFilter()
+    {
+        if (HistoryEventFilter is null || HistoryProtocolFilter is null || HistoryStatusFilter is null)
+        {
+            return;
+        }
+
+        string eventFilter = HistoryEventFilter.SelectedIndex > 0 ? HistoryEventFilter.SelectedItem?.ToString() ?? string.Empty : string.Empty;
+        string protocolFilter = HistoryProtocolFilter.SelectedIndex > 0 ? HistoryProtocolFilter.SelectedItem?.ToString() ?? string.Empty : string.Empty;
+        string statusFilter = HistoryStatusFilter.SelectedIndex > 0 ? HistoryStatusFilter.SelectedItem?.ToString() ?? string.Empty : string.Empty;
+        filteredAnnounceHistory.Clear();
+        foreach (AnnounceHistoryRow entry in announceHistory.Where(entry =>
+            (string.IsNullOrEmpty(eventFilter) || entry.Event.Equals(eventFilter, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(protocolFilter) || entry.Protocol.Equals(protocolFilter, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(statusFilter) ||
+             (statusFilter == "Success" && !entry.Status.Equals("Error", StringComparison.OrdinalIgnoreCase)) ||
+             entry.Status.Equals(statusFilter, StringComparison.OrdinalIgnoreCase))))
+        {
+            filteredAnnounceHistory.Add(entry);
+        }
+    }
+
+    private async void ExportHistoryCsv_Click(object? sender, RoutedEventArgs e) =>
+        await ExportHistoryAsync("CSV", "csv", AnnounceHistoryExporter.ToCsv(filteredAnnounceHistory));
+
+    private async void ExportHistoryJson_Click(object? sender, RoutedEventArgs e) =>
+        await ExportHistoryAsync("JSON", "json", AnnounceHistoryExporter.ToJson(filteredAnnounceHistory));
+
+    private async Task ExportHistoryAsync(string label, string extension, string content)
+    {
+        IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = $"Export announce history as {label}",
+            SuggestedFileName = $"ratioforge-announces-{DateTime.Now:yyyyMMdd-HHmmss}.{extension}",
+            FileTypeChoices = [new FilePickerFileType(label) { Patterns = [$"*.{extension}"] }],
+        });
+        if (file is null)
+        {
+            return;
+        }
+
+        await using Stream stream = await file.OpenWriteAsync();
+        stream.SetLength(0);
+        await using var writer = new StreamWriter(stream, new UTF8Encoding(false));
+        await writer.WriteAsync(content);
+        AddActivity($"Exported {filteredAnnounceHistory.Count} filtered announces as {label}.");
+        AddDebug($"Announce history exported: format={extension}; entries={filteredAnnounceHistory.Count}; path={file.Path.LocalPath}");
     }
 
     private static string FormatLocalAddresses(IEnumerable<string> addresses, AddressFamily family)

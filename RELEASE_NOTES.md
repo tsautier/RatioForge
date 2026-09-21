@@ -1,15 +1,17 @@
-# RatioForge 1.2.0
+# RatioForge 1.2.1
 
-RatioForge 1.2.0 completes the six medium-term networking and workflow improvements planned after 1.1.5.
+RatioForge 1.2.1 stabilizes the 1.2 tracker workflow and incorporates applicable compatibility fixes identified after reviewing current RatioMaster.NET changes.
 
-- Structured announce history with redacted tracker, event, protocol, status, latency, interval, and result
-- Readable pre-session diagnostics for DNS, IPv4, IPv6, TCP, TLS, proxy endpoints, and UDP tracker handshakes
-- Ordered `announce-list` tiers with automatic failover and visible active tracker selection
-- BEP 15 UDP tracker announces over IPv4 and IPv6, including legacy client Peer ID decoding
-- Named session profiles for client, rates, interval, port, proxy, source address, and randomization settings
-- Platform-aware update downloads with release notes, metadata size checks, and SHA256 verification before opening
-- Privacy-filtered diagnostics now include active tracker and structured announce history
-- Automated coverage for torrent tiers, UDP packets and loopback exchanges, profiles, diagnostics, update selection, checksum rejection, and new Avalonia controls
+- Filter and export redacted announce history as CSV or JSON
+- Select an `announce-list` tracker manually and retry it immediately
+- Pause upload accounting while the tracker explicitly reports zero leechers
+- Request zero peers on stopped HTTP(S) and UDP announces
+- Correct arbitrary Peer ID byte generation, Transmission check digits, and Transmission keys
+- Rotate generated uTorrent and BitTorrent tracker keys every ten minutes
+- Load modern emulations from an embedded and user-overridable `clients.json`
+- Add current qBittorrent, uTorrent, BitTorrent, Transmission, Deluge, Vuze, and rTorrent profiles
+- Redact local addresses and proxy usernames from support exports
+- Add structured GitHub issue forms and a private security-reporting policy
 - Native self-contained and Lite builds for Windows x64, Linux x64, macOS Intel, and macOS Apple Silicon
 - SHA256 verification files for every release package
 

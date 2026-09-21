@@ -17,6 +17,15 @@ using NUnit.Framework;
 [TestFixture]
 public sealed class RoadmapFeaturesTests
 {
+    [TestCase(true, 0, true)]
+    [TestCase(true, 1, false)]
+    [TestCase(true, null, false)]
+    [TestCase(false, 0, false)]
+    public void UploadPolicyShouldOnlyPauseForAnExplicitEmptySwarm(bool enabled, int? leechers, bool expected)
+    {
+        Assert.That(SessionUploadPolicy.IsPaused(enabled, leechers), Is.EqualTo(expected));
+    }
+
     [Test]
     public void TorrentDocumentShouldPreserveAnnounceListTiers()
     {
@@ -57,6 +66,109 @@ public sealed class RoadmapFeaturesTests
             Assert.That(BinaryPrimitives.ReadInt32BigEndian(packet.AsSpan(92, 4)), Is.EqualTo(50));
             Assert.That(BinaryPrimitives.ReadUInt16BigEndian(packet.AsSpan(96, 2)), Is.EqualTo(6881));
         });
+    }
+
+    [Test]
+    public void StoppedUdpAnnounceShouldRequestNoPeers()
+    {
+        TorrentDocument torrent = TorrentDocument.Load(FixturePath("single-file.torrent"));
+        var options = new TrackerAnnounceOptions(
+            torrent, ClientProfileCatalog.Default, 0, 0, 6881, 200, "stopped",
+            Identity: new ClientIdentity("key", "-qB5230-123456789012"));
+
+        byte[] packet = UdpTrackerClient.BuildAnnounceRequest(options, 42, out _);
+
+        Assert.That(BinaryPrimitives.ReadInt32BigEndian(packet.AsSpan(92, 4)), Is.Zero);
+    }
+
+    [Test]
+    public void ModernClientCatalogShouldExposeCorrectedProfiles()
+    {
+        string[] expected =
+        [
+            "qBittorrent 5.2.3", "qBittorrent 5.1.4", "uTorrent 3.6.0 (build 46828)",
+            "BitTorrent 7.10.3 (44429)", "Transmission 3.00", "Deluge 2.1.1",
+            "Vuze 5.7.5.0", "rTorrent 0.9.6",
+        ];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(expected.All(name => ClientProfileCatalog.All.Any(profile => profile.Name == name)), Is.True);
+            Assert.That(ClientProfileCatalog.Default.Name, Is.EqualTo("qBittorrent 5.2.3"));
+            Assert.That(ClientProfileCatalog.UserCatalogPath, Does.EndWith("clients.json"));
+        });
+    }
+
+    [Test]
+    public void TransmissionPeerIdShouldContainValidBase36CheckDigit()
+    {
+        ClientProfile profile = ClientProfileCatalog.All.Single(item => item.Name == "Transmission 3.00");
+
+        for (int iteration = 0; iteration < 100; iteration++)
+        {
+            string suffix = profile.CreateIdentity().PeerId[8..];
+            int total = suffix.Sum(character => character is >= '0' and <= '9' ? character - '0' : character - 'a' + 10);
+            Assert.That(total % 36, Is.Zero);
+        }
+    }
+
+    [Test]
+    public void RandomPeerIdBytesShouldNeverContainNull()
+    {
+        ClientProfile profile = ClientProfileCatalog.All.Single(item => item.Name == "uTorrent 3.6.0 (build 46828)");
+
+        for (int iteration = 0; iteration < 100; iteration++)
+        {
+            byte[] peerId = UdpTrackerClient.DecodePeerId(profile.CreateIdentity().PeerId);
+            Assert.Multiple(() =>
+            {
+                Assert.That(peerId, Has.Length.EqualTo(20));
+                Assert.That(peerId, Has.None.Zero);
+            });
+        }
+    }
+
+    [Test]
+    public void EveryDataDrivenProfileShouldBuildACompleteAnnounce()
+    {
+        TorrentInfo values = new(16_384, 32)
+        {
+            tracker = "https://tracker.example/announce",
+            hash = "00112233445566778899aabbccddeeff10203040",
+            left = 1_000,
+            totalsize = 2_000,
+            port = "6881",
+            numberOfPeers = "200",
+        };
+
+        foreach (ClientProfile profile in ClientProfileCatalog.All.Where(item => item.Definition is not null))
+        {
+            ClientIdentity identity = profile.CreateIdentity();
+            TorrentClient client = profile.CreateClient();
+            values.peerID = identity.PeerId;
+            values.key = identity.Key;
+
+            string request = TrackerUrlBuilder.BuildAnnounce(values, client, "&event=started", string.Empty);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(UdpTrackerClient.DecodePeerId(identity.PeerId), Has.Length.EqualTo(20), profile.Name);
+                Assert.That(request, Does.Not.Contain("{"), profile.Name);
+                Assert.That(request, Does.Contain("event=started"), profile.Name);
+            });
+        }
+    }
+
+    [Test]
+    public void InvalidExternalProfileShouldFailValidation()
+    {
+        const string invalid = """
+            { "clients": [{ "name": "Broken" }] }
+            """;
+
+        Assert.That(
+            () => ClientProfileCatalog.ParseDefinitions(invalid),
+            Throws.TypeOf<System.Text.Json.JsonException>());
     }
 
     [Test]

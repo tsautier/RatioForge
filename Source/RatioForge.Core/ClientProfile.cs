@@ -1,9 +1,16 @@
 namespace RatioForge;
 
 /// <summary>A public, immutable view of a legacy torrent client identity.</summary>
-public sealed record ClientProfile(string Name, string UserAgent, int DefaultPeerCount)
+public sealed record ClientProfile(
+    string Name,
+    string UserAgent,
+    int DefaultPeerCount,
+    ClientProfileDefinition? Definition = null)
 {
-    internal TorrentClient CreateClient() => TorrentClientFactory.GetClient(Name);
+    internal TorrentClient CreateClient() => Definition?.CreateClient() ?? TorrentClientFactory.GetClient(Name);
+
+    /// <summary>Gets the number of minutes after which the client rotates its generated tracker key, or zero.</summary>
+    public int KeyRefreshMinutes => Definition?.KeyRefreshMinutes ?? 0;
 
     /// <summary>Creates the client key and peer ID used for one tracker session.</summary>
     public ClientIdentity CreateIdentity()

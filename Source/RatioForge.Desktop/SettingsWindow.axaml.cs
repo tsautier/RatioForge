@@ -55,11 +55,13 @@ public partial class SettingsWindow : Window
         ActivityLogCheck.IsChecked = settings.EnableActivityLog;
         DebugLogCheck.IsChecked = settings.EnableDebugLog;
         StopOnTrackerFailureCheck.IsChecked = settings.StopOnTrackerFailure;
+        PauseUploadWhenNoLeechersCheck.IsChecked = settings.PauseUploadWhenNoLeechers;
         StopConditionCombo.ItemsSource = StopConditionOptions;
         StopConditionCombo.SelectedItem = StopConditionOptions.First(
             option => option.Condition == settings.StopCondition);
         StopValueBox.Value = settings.StopValue;
         DebugLogPathBox.Text = DebugLogStore.DefaultPath;
+        ClientCatalogPathBox.Text = ClientProfileCatalog.UserCatalogPath;
         RandomUploadCheck.IsChecked = settings.RandomizeUpload;
         MinimumUploadBox.Value = settings.MinimumUploadRateKib;
         MaximumUploadBox.Value = settings.MaximumUploadRateKib;
@@ -127,6 +129,7 @@ public partial class SettingsWindow : Window
         settings.EnableActivityLog = ActivityLogCheck.IsChecked == true;
         settings.EnableDebugLog = DebugLogCheck.IsChecked == true;
         settings.StopOnTrackerFailure = StopOnTrackerFailureCheck.IsChecked == true;
+        settings.PauseUploadWhenNoLeechers = PauseUploadWhenNoLeechersCheck.IsChecked == true;
         settings.StopCondition = (StopConditionCombo.SelectedItem as StopConditionOption)?.Condition
             ?? SessionStopCondition.Never;
         settings.StopValue = StopValueBox.Value ?? 3600;
@@ -228,6 +231,7 @@ public partial class SettingsWindow : Window
             ProxyHost = ProxyHostBox.Text ?? string.Empty,
             ProxyPort = Decimal.ToInt32(ProxyPortBox.Value ?? 8080),
             ProxyUsername = ProxyUsernameBox.Text ?? string.Empty,
+            PauseUploadWhenNoLeechers = PauseUploadWhenNoLeechersCheck.IsChecked == true,
         };
         snapshot.Normalize();
         return snapshot;
@@ -253,6 +257,7 @@ public partial class SettingsWindow : Window
         ProxyPortBox.Value = source.ProxyPort;
         ProxyUsernameBox.Text = source.ProxyUsername;
         ProxyPasswordBox.Text = string.Empty;
+        PauseUploadWhenNoLeechersCheck.IsChecked = source.PauseUploadWhenNoLeechers;
         UpdateProxyFields();
     }
 
@@ -284,6 +289,7 @@ public partial class SettingsWindow : Window
         ActivityLogCheck.IsChecked = defaults.EnableActivityLog;
         DebugLogCheck.IsChecked = defaults.EnableDebugLog;
         StopOnTrackerFailureCheck.IsChecked = defaults.StopOnTrackerFailure;
+        PauseUploadWhenNoLeechersCheck.IsChecked = defaults.PauseUploadWhenNoLeechers;
         StopConditionCombo.SelectedItem = StopConditionOptions.First(
             option => option.Condition == defaults.StopCondition);
         StopValueBox.Value = defaults.StopValue;

@@ -39,6 +39,7 @@
             <CheckBox x:Name="ActivityLogCheck" Content="Enable activity log" />
             <CheckBox x:Name="DebugLogCheck" Content="Enable persistent debug logging" />
             <CheckBox x:Name="StopOnTrackerFailureCheck" Content="Stop when the tracker rejects an announce" />
+            <CheckBox x:Name="PauseUploadWhenNoLeechersCheck" Content="Pause upload while the tracker reports no leechers" />
             <TextBlock Classes="label" Text="Automatic stop" />
             <Grid ColumnDefinitions="*,180" ColumnSpacing="12">
               <ComboBox x:Name="StopConditionCombo" SelectionChanged="StopConditionCombo_SelectionChanged" />
@@ -52,6 +53,8 @@
               <TextBox x:Name="DebugLogPathBox" IsReadOnly="True" />
               <Button Grid.Column="1" Content="Open log" Click="OpenDebugLog_Click" Padding="12,7" />
             </Grid>
+            <TextBlock Classes="label" Text="Custom client catalog" />
+            <TextBox x:Name="ClientCatalogPathBox" IsReadOnly="True" />
           </StackPanel>
         </ScrollViewer>
       </TabItem>

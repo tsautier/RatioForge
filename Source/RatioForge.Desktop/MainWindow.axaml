@@ -57,6 +57,10 @@
               <StackPanel>
                 <TextBlock Classes="label" Text="Tracker" />
                 <TextBlock x:Name="TrackerText" Text="-" TextWrapping="Wrap" MaxHeight="48" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,6,0,0">
+                  <ComboBox x:Name="TrackerCombo" SelectionChanged="TrackerCombo_SelectionChanged" IsEnabled="False" />
+                  <Button x:Name="RetryTrackerButton" Grid.Column="1" Content="Retry" Click="RetryTracker_Click" IsEnabled="False" Padding="12,7" />
+                </Grid>
               </StackPanel>
               <StackPanel>
                 <TextBlock Classes="label" Text="Torrent info hash" />
@@ -177,8 +181,16 @@
                 <ListBox x:Name="ActivityList" Background="Transparent" BorderThickness="0" FontFamily="Cascadia Mono,Consolas,monospace" FontSize="12" />
               </TabItem>
               <TabItem Header="Announces">
-                <Grid RowDefinitions="34,*">
-                  <Grid ColumnDefinitions="70,75,*,65,55,65,65,120" ColumnSpacing="8" Margin="8,0">
+                <Grid RowDefinitions="Auto,34,*">
+                  <Grid ColumnDefinitions="Auto,150,150,150,*,Auto,Auto" ColumnSpacing="8" Margin="8,4,8,8">
+                    <TextBlock Text="Filter" Classes="label" VerticalAlignment="Center" />
+                    <ComboBox x:Name="HistoryEventFilter" Grid.Column="1" SelectionChanged="HistoryFilter_SelectionChanged" />
+                    <ComboBox x:Name="HistoryProtocolFilter" Grid.Column="2" SelectionChanged="HistoryFilter_SelectionChanged" />
+                    <ComboBox x:Name="HistoryStatusFilter" Grid.Column="3" SelectionChanged="HistoryFilter_SelectionChanged" />
+                    <Button Grid.Column="5" Content="CSV" Click="ExportHistoryCsv_Click" Padding="10,5" />
+                    <Button Grid.Column="6" Content="JSON" Click="ExportHistoryJson_Click" Padding="10,5" />
+                  </Grid>
+                  <Grid Grid.Row="1" ColumnDefinitions="70,75,*,65,55,65,65,120" ColumnSpacing="8" Margin="8,0">
                     <TextBlock Text="Time" Classes="label" />
                     <TextBlock Grid.Column="1" Text="Event" Classes="label" />
                     <TextBlock Grid.Column="2" Text="Tracker" Classes="label" />
@@ -188,7 +200,7 @@
                     <TextBlock Grid.Column="6" Text="Interval" Classes="label" />
                     <TextBlock Grid.Column="7" Text="Result" Classes="label" />
                   </Grid>
-                  <ListBox x:Name="AnnounceHistoryList" Grid.Row="1" Background="Transparent" BorderThickness="0">
+                  <ListBox x:Name="AnnounceHistoryList" Grid.Row="2" Background="Transparent" BorderThickness="0">
                     <ListBox.ItemTemplate>
                       <DataTemplate x:DataType="local:AnnounceHistoryRow">
                         <Grid ColumnDefinitions="70,75,*,65,55,65,65,120" ColumnSpacing="8" Margin="8,5">

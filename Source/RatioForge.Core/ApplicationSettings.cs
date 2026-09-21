@@ -60,6 +60,8 @@ public sealed class ApplicationSettings
 
     public bool StopOnTrackerFailure { get; set; } = true;
 
+    public bool PauseUploadWhenNoLeechers { get; set; } = true;
+
     public SessionStopCondition StopCondition { get; set; } = SessionStopCondition.Never;
 
     public decimal StopValue { get; set; } = 3600;

@@ -22,7 +22,8 @@ public sealed record SessionProfile(
     decimal MaximumUploadRateKib,
     bool RandomizeDownload,
     decimal MinimumDownloadRateKib,
-    decimal MaximumDownloadRateKib)
+    decimal MaximumDownloadRateKib,
+    bool PauseUploadWhenNoLeechers = true)
 {
     public static SessionProfile FromSettings(string name, ApplicationSettings settings)
     {
@@ -33,7 +34,8 @@ public sealed record SessionProfile(
             settings.Port, settings.PeerCount, settings.IntervalSeconds, settings.LocalAddress,
             settings.ProxyMode, settings.ProxyHost, settings.ProxyPort, settings.ProxyUsername,
             settings.RandomizeUpload, settings.MinimumUploadRateKib, settings.MaximumUploadRateKib,
-            settings.RandomizeDownload, settings.MinimumDownloadRateKib, settings.MaximumDownloadRateKib);
+            settings.RandomizeDownload, settings.MinimumDownloadRateKib, settings.MaximumDownloadRateKib,
+            settings.PauseUploadWhenNoLeechers);
     }
 
     public void ApplyTo(ApplicationSettings settings)
@@ -56,6 +58,7 @@ public sealed record SessionProfile(
         settings.RandomizeDownload = RandomizeDownload;
         settings.MinimumDownloadRateKib = MinimumDownloadRateKib;
         settings.MaximumDownloadRateKib = MaximumDownloadRateKib;
+        settings.PauseUploadWhenNoLeechers = PauseUploadWhenNoLeechers;
         settings.SelectedSessionProfileName = Name;
         settings.Normalize();
     }

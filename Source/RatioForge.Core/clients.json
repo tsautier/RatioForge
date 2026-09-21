@@ -1,0 +1,88 @@
+{
+  "clients": [
+    {
+      "name": "qBittorrent 5.2.3", "userAgent": "qBittorrent/5.2.3", "defaultPeerCount": 200,
+      "key": { "kind": "Hex", "length": 8, "upperCase": true },
+      "peerIdPrefix": "-qB5230-", "peerId": { "kind": "UrlSafe", "length": 12 },
+      "headers": ["Host: {host}", "User-Agent: qBittorrent/5.2.3", "Accept-Encoding: gzip", "Connection: close"],
+      "query": "info_hash={infohash}&peer_id={peerid}&port={port}&uploaded={uploaded}&downloaded={downloaded}&left={left}&corrupt=0&key={key}{event}&numwant={numwant}&compact=1&no_peer_id=1&supportcrypto=1&redundant=0"
+    },
+    {
+      "name": "qBittorrent 5.1.4", "userAgent": "qBittorrent/5.1.4", "defaultPeerCount": 200,
+      "key": { "kind": "Hex", "length": 8, "upperCase": true },
+      "peerIdPrefix": "-qB5140-", "peerId": { "kind": "UrlSafe", "length": 12 },
+      "headers": ["Host: {host}", "User-Agent: qBittorrent/5.1.4", "Accept-Encoding: gzip", "Connection: close"],
+      "query": "info_hash={infohash}&peer_id={peerid}&port={port}&uploaded={uploaded}&downloaded={downloaded}&left={left}&corrupt=0&key={key}{event}&numwant={numwant}&compact=1&no_peer_id=1&supportcrypto=1&redundant=0"
+    },
+    {
+      "name": "qBittorrent 4.6.7", "userAgent": "qBittorrent/4.6.7", "defaultPeerCount": 200,
+      "key": { "kind": "Hex", "length": 8, "upperCase": true },
+      "peerIdPrefix": "-qB4670-", "peerId": { "kind": "UrlSafe", "length": 12 },
+      "headers": ["Host: {host}", "User-Agent: qBittorrent/4.6.7", "Accept-Encoding: gzip", "Connection: close"],
+      "query": "info_hash={infohash}&peer_id={peerid}&port={port}&uploaded={uploaded}&downloaded={downloaded}&left={left}&corrupt=0&key={key}{event}&numwant={numwant}&compact=1&no_peer_id=1&supportcrypto=1&redundant=0"
+    },
+    {
+      "name": "uTorrent 3.6.0 (build 46828)", "userAgent": "uTorrent/360(113358572)(46828)", "defaultPeerCount": 200, "keyRefreshMinutes": 10,
+      "key": { "kind": "Hex", "length": 8, "upperCase": true },
+      "peerIdPrefix": "-UT360S-%ec%b6", "peerId": { "kind": "Random", "length": 10, "urlEncode": true },
+      "headers": ["Host: {host}", "User-Agent: uTorrent/360(113358572)(46828)", "Accept-Encoding: gzip", "Connection: Close"],
+      "query": "info_hash={infohash}&peer_id={peerid}&port={port}&uploaded={uploaded}&downloaded={downloaded}&left={left}&corrupt=0&key={key}{event}&numwant={numwant}&compact=1&no_peer_id=1"
+    },
+    {
+      "name": "uTorrent 3.5.5 (build 46074)", "userAgent": "uTorrent/355(111916026)(46074)", "defaultPeerCount": 200, "keyRefreshMinutes": 10,
+      "key": { "kind": "Hex", "length": 8, "upperCase": true },
+      "peerIdPrefix": "-UT355S-%fa%b3", "peerId": { "kind": "Random", "length": 10, "urlEncode": true },
+      "headers": ["Host: {host}", "User-Agent: uTorrent/355(111916026)(46074)", "Accept-Encoding: gzip", "Connection: Close"],
+      "query": "info_hash={infohash}&peer_id={peerid}&port={port}&uploaded={uploaded}&downloaded={downloaded}&left={left}&corrupt=0&key={key}{event}&numwant={numwant}&compact=1&no_peer_id=1"
+    },
+    {
+      "name": "uTorrent 3.5.4 (build 44498)", "userAgent": "uTorrent/354(111783378)(44498)", "defaultPeerCount": 200, "keyRefreshMinutes": 10,
+      "key": { "kind": "Hex", "length": 8, "upperCase": true },
+      "peerIdPrefix": "-UT354S-%d2%ad", "peerId": { "kind": "Random", "length": 10, "urlEncode": true },
+      "headers": ["Host: {host}", "User-Agent: uTorrent/354(111783378)(44498)", "Accept-Encoding: gzip", "Connection: Close"],
+      "query": "info_hash={infohash}&peer_id={peerid}&port={port}&uploaded={uploaded}&downloaded={downloaded}&left={left}&corrupt=0&key={key}{event}&numwant={numwant}&compact=1&no_peer_id=1"
+    },
+    {
+      "name": "BitTorrent 7.10.3 (44429)", "userAgent": "BitTorrent/7103(256355725)(44429)", "defaultPeerCount": 200, "keyRefreshMinutes": 10,
+      "key": { "kind": "Hex", "length": 8, "upperCase": true },
+      "peerIdPrefix": "-BT7a3S-%8d%ad", "peerId": { "kind": "Random", "length": 10, "urlEncode": true },
+      "headers": ["Host: {host}", "User-Agent: BitTorrent/7103(256355725)(44429)", "Accept-Encoding: gzip", "Connection: Close"],
+      "query": "info_hash={infohash}&peer_id={peerid}&port={port}&uploaded={uploaded}&downloaded={downloaded}&left={left}&corrupt=0&key={key}{event}&numwant={numwant}&compact=1&no_peer_id=1"
+    },
+    {
+      "name": "Transmission 3.00", "userAgent": "Transmission/3.00", "defaultPeerCount": 80,
+      "key": { "kind": "HexRange", "length": 0 },
+      "peerIdPrefix": "-TR3000-", "peerId": { "kind": "TransmissionChecksum", "length": 12 },
+      "headers": ["User-Agent: Transmission/3.00", "Host: {host}", "Accept: */*", "Accept-Encoding: deflate, gzip"],
+      "query": "info_hash={infohash}&peer_id={peerid}&port={port}&uploaded={uploaded}&downloaded={downloaded}&left={left}&numwant={numwant}&key={key}&compact=1&supportcrypto=1{event}"
+    },
+    {
+      "name": "Transmission 2.94", "userAgent": "Transmission/2.94", "defaultPeerCount": 80,
+      "key": { "kind": "HexRange", "length": 0 },
+      "peerIdPrefix": "-TR2940-", "peerId": { "kind": "TransmissionChecksum", "length": 12 },
+      "headers": ["User-Agent: Transmission/2.94", "Host: {host}", "Accept: */*", "Accept-Encoding: gzip;q=1.0, deflate, identity"],
+      "query": "info_hash={infohash}&peer_id={peerid}&port={port}&uploaded={uploaded}&downloaded={downloaded}&left={left}&numwant={numwant}&key={key}&compact=1&supportcrypto=1{event}"
+    },
+    {
+      "name": "Deluge 2.1.1", "userAgent": "Deluge/2.1.1 libtorrent/1.2.15.0", "defaultPeerCount": 200,
+      "key": { "kind": "Hex", "length": 8, "upperCase": true },
+      "peerIdPrefix": "-DE211s-", "peerId": { "kind": "UrlSafe", "length": 12 },
+      "headers": ["Host: {host}", "User-Agent: Deluge/2.1.1 libtorrent/1.2.15.0", "Accept-Encoding: gzip", "Connection: close"],
+      "query": "info_hash={infohash}&peer_id={peerid}&port={port}&uploaded={uploaded}&downloaded={downloaded}&left={left}&corrupt=0&key={key}{event}&numwant={numwant}&compact=1&no_peer_id=1&supportcrypto=1&redundant=0"
+    },
+    {
+      "name": "Vuze 5.7.5.0", "userAgent": "Azureus 5.7.5.0;Windows 10;Java 1.8.0_121", "defaultPeerCount": 100, "hashUpperCase": true,
+      "key": { "kind": "Alphanumeric", "length": 8 },
+      "peerIdPrefix": "-AZ5750-", "peerId": { "kind": "Alphanumeric", "length": 12 },
+      "headers": ["User-Agent: Azureus 5.7.5.0;Windows 10;Java 1.8.0_121", "Connection: close", "Accept-Encoding: gzip", "Host: {host}", "Accept: text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2"],
+      "query": "info_hash={infohash}&peer_id={peerid}&supportcrypto=1&port={port}&azudp={port}&uploaded={uploaded}&downloaded={downloaded}&left={left}&corrupt=0{event}&numwant={numwant}&no_peer_id=1&compact=1&key={key}&azver=3"
+    },
+    {
+      "name": "rTorrent 0.9.6", "userAgent": "rtorrent/0.9.6/0.13.6", "defaultPeerCount": 0,
+      "key": { "kind": "Hex", "length": 8 },
+      "peerIdPrefix": "-lt0D60-", "peerId": { "kind": "Random", "length": 12, "urlEncode": true, "upperCase": true },
+      "headers": ["Host: {host}", "User-Agent: rtorrent/0.9.6/0.13.6", "Accept: */*", "Accept-Encoding: deflate, gzip"],
+      "query": "info_hash={infohash}&peer_id={peerid}&key={key}&compact=1&port={port}&uploaded={uploaded}&downloaded={downloaded}&left={left}{event}"
+    }
+  ]
+}

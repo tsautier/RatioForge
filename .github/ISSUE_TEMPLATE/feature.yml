@@ -1,0 +1,37 @@
+name: Feature request
+description: Propose a focused improvement to RatioForge
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: checkboxes
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked the roadmap and existing issues for duplicates.
+          required: true
+  - type: textarea
+    attributes:
+      label: Problem to solve
+      description: Explain the user problem, not only the proposed control or screen.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed behavior
+      description: Describe the expected workflow and result.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Alternatives considered
+      description: Mention workarounds or simpler alternatives.
+  - type: dropdown
+    attributes:
+      label: Area
+      options: [Tracker compatibility, Client emulation, Network and proxy, User interface, Updates and packaging, Diagnostics, Other]
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: References, screenshots, or compatibility constraints. Remove all private tracker data.
