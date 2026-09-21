@@ -131,6 +131,7 @@ public partial class MainWindow : Window
     {
         ApplicationThemeManager.Apply(settings.ThemeMode);
 
+        ClientCombo.ItemsSource = ClientProfileCatalog.All;
         ClientCombo.SelectedItem = ClientProfileCatalog.All.FirstOrDefault(
             profile => profile.Name == settings.DefaultProfileName) ?? ClientProfileCatalog.Default;
         var addresses = new List<string> { "Automatic (IPv4 / IPv6)" };
@@ -520,11 +521,12 @@ public partial class MainWindow : Window
                     clientIdentity,
                     GetRemainingBytes(),
                     trackerUrl);
+                string diagnosticRequest = BuildDiagnosticRequest(options);
                 AddDebug($"Announce sending: event={eventName}; tracker={trackerUrl}; candidate={trackerIndex + 1}/{trackers.Count}; local_ip={options.LocalIp}; uploaded={uploaded}; downloaded={downloaded}; left={options.Left}");
                 try
                 {
                     result = await announceClient.AnnounceAsync(options, cancellationToken);
-                    AddAnnounceHistory(eventName, trackerUrl, result);
+                    AddAnnounceHistory(eventName, trackerUrl, result, offset + 1, trackerIndex + 1, trackers.Count);
                     if (result.IsSuccess)
                     {
                         if (activeTrackerIndex != trackerIndex)
@@ -542,7 +544,9 @@ public partial class MainWindow : Window
                 catch (Exception exception) when (exception is not OperationCanceledException)
                 {
                     finalException = exception;
-                    AddAnnounceHistory(eventName, trackerUrl, exception);
+                    AddAnnounceHistory(
+                        eventName, trackerUrl, exception, diagnosticRequest,
+                        offset + 1, trackerIndex + 1, trackers.Count);
                     AddDebug($"Tracker candidate failed: candidate={trackerIndex + 1}/{trackers.Count}; type={exception.GetType().FullName}; message={exception.Message}");
                 }
             }
@@ -919,10 +923,22 @@ public partial class MainWindow : Window
         }
     }
 
-    private void AddAnnounceHistory(string eventName, string trackerUrl, TrackerAnnounceResult result)
+    private void AddAnnounceHistory(
+        string eventName,
+        string trackerUrl,
+        TrackerAnnounceResult result,
+        int attempt,
+        int candidate,
+        int candidateCount)
     {
         string protocol = new Uri(trackerUrl).Scheme.ToUpperInvariant();
         string status = result.HttpStatusCode?.ToString() ?? (result.IsSuccess ? "OK" : "Error");
+        string diagnostic = $"attempt={attempt}; candidate={candidate}/{candidateCount}; http={FormatOptional(result.HttpStatusCode)}; " +
+            $"transport={EmptyAsUnknown(result.HttpVersion)}; server={EmptyAsUnknown(result.Server)}; " +
+            $"content_type={EmptyAsUnknown(result.ContentType)}; content_length={FormatOptional(result.ContentLength)}; " +
+            $"complete={FormatOptional(result.Complete)}; incomplete={FormatOptional(result.Incomplete)}; " +
+            $"ipv4_peers={FormatOptional(result.Ipv4Peers)}; ipv6_peers={FormatOptional(result.Ipv6Peers)}; " +
+            $"min_interval={FormatOptional(result.MinimumIntervalSeconds)}";
         announceHistory.Insert(0, new AnnounceHistoryRow(
             DateTime.Now.ToString("HH:mm:ss"),
             string.IsNullOrWhiteSpace(eventName) ? "update" : eventName,
@@ -931,13 +947,26 @@ public partial class MainWindow : Window
             status,
             $"{result.ElapsedMilliseconds} ms",
             result.IntervalSeconds is int interval ? $"{interval}s" : "-",
-            SensitiveDataRedactor.Redact(result.Message)));
+            SensitiveDataRedactor.Redact(result.Message),
+            attempt,
+            SensitiveDataRedactor.RedactUrl(result.RequestUrl),
+            SensitiveDataRedactor.Redact(diagnostic),
+            SensitiveDataRedactor.RedactUrl(result.FinalUrl)));
         TrimAnnounceHistory();
         ApplyHistoryFilter();
     }
 
-    private void AddAnnounceHistory(string eventName, string trackerUrl, Exception exception)
+    private void AddAnnounceHistory(
+        string eventName,
+        string trackerUrl,
+        Exception exception,
+        string request,
+        int attempt,
+        int candidate,
+        int candidateCount)
     {
+        string diagnostic = $"attempt={attempt}; candidate={candidate}/{candidateCount}; " +
+            $"exception={exception.GetType().Name}; message={exception.Message}";
         announceHistory.Insert(0, new AnnounceHistoryRow(
             DateTime.Now.ToString("HH:mm:ss"),
             string.IsNullOrWhiteSpace(eventName) ? "update" : eventName,
@@ -946,7 +975,11 @@ public partial class MainWindow : Window
             "Error",
             "-",
             "-",
-            SensitiveDataRedactor.Redact(exception.Message)));
+            SensitiveDataRedactor.Redact(exception.Message),
+            attempt,
+            request,
+            SensitiveDataRedactor.Redact(diagnostic),
+            string.Empty));
         TrimAnnounceHistory();
         ApplyHistoryFilter();
     }
@@ -1002,6 +1035,57 @@ public partial class MainWindow : Window
              entry.Status.Equals(statusFilter, StringComparison.OrdinalIgnoreCase))))
         {
             filteredAnnounceHistory.Add(entry);
+        }
+    }
+
+    private void AnnounceHistoryList_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        AnnounceHistoryRow? selected = AnnounceHistoryList.SelectedItem as AnnounceHistoryRow;
+        HistoryRequestBox.Text = selected?.Request ?? string.Empty;
+        HistoryDiagnosticBox.Text = selected?.Diagnostic ?? string.Empty;
+        CopyAnnounceButton.IsEnabled = !string.IsNullOrWhiteSpace(selected?.Request);
+    }
+
+    private async void CopyAnnounce_Click(object? sender, RoutedEventArgs e)
+    {
+        if (AnnounceHistoryList.SelectedItem is not AnnounceHistoryRow selected ||
+            string.IsNullOrWhiteSpace(selected.Request))
+        {
+            return;
+        }
+
+        try
+        {
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard
+                ?? throw new InvalidOperationException("Clipboard is unavailable.");
+            await clipboard.SetTextAsync(SensitiveDataRedactor.RedactUrl(selected.Request));
+            StatusText.Text = "Anonymized announce copied";
+            AddDebug($"Anonymized announce copied: attempt={selected.Attempt}; protocol={selected.Protocol}");
+        }
+        catch (Exception exception)
+        {
+            StatusText.Text = "Could not copy announce";
+            AddActivity("ERROR " + exception.Message, force: true);
+        }
+    }
+
+    private static string BuildDiagnosticRequest(TrackerAnnounceOptions options)
+    {
+        string trackerUrl = options.TrackerUrl ?? options.Torrent.Tracker;
+        try
+        {
+            var uri = new Uri(trackerUrl, UriKind.Absolute);
+            if (uri.Scheme is "http" or "https")
+            {
+                return SensitiveDataRedactor.RedactUrl(TrackerAnnounceClient.BuildHttpRequestUrl(options));
+            }
+
+            return SensitiveDataRedactor.RedactUrl(trackerUrl) +
+                $" [event={EmptyAsUnknown(options.Event)}; uploaded={options.Uploaded}; downloaded={options.Downloaded}; left={FormatOptional(options.Left)}; numwant={(options.Event.Equals("stopped", StringComparison.OrdinalIgnoreCase) ? 0 : options.PeerCount)}]";
+        }
+        catch (Exception exception) when (exception is UriFormatException or FormatException or ArgumentException)
+        {
+            return SensitiveDataRedactor.RedactUrl(trackerUrl) + $" [request unavailable: {exception.Message}]";
         }
     }
 
@@ -1079,4 +1163,8 @@ public sealed record AnnounceHistoryRow(
     string Status,
     string Latency,
     string Interval,
-    string Result);
+    string Result,
+    int Attempt = 1,
+    string Request = "",
+    string Diagnostic = "",
+    string FinalUrl = "");

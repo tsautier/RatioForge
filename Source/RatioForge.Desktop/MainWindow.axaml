@@ -181,7 +181,7 @@
                 <ListBox x:Name="ActivityList" Background="Transparent" BorderThickness="0" FontFamily="Cascadia Mono,Consolas,monospace" FontSize="12" />
               </TabItem>
               <TabItem Header="Announces">
-                <Grid RowDefinitions="Auto,34,*">
+                <Grid RowDefinitions="Auto,34,*,Auto">
                   <Grid ColumnDefinitions="Auto,150,150,150,*,Auto,Auto" ColumnSpacing="8" Margin="8,4,8,8">
                     <TextBlock Text="Filter" Classes="label" VerticalAlignment="Center" />
                     <ComboBox x:Name="HistoryEventFilter" Grid.Column="1" SelectionChanged="HistoryFilter_SelectionChanged" />
@@ -200,7 +200,8 @@
                     <TextBlock Grid.Column="6" Text="Interval" Classes="label" />
                     <TextBlock Grid.Column="7" Text="Result" Classes="label" />
                   </Grid>
-                  <ListBox x:Name="AnnounceHistoryList" Grid.Row="2" Background="Transparent" BorderThickness="0">
+                  <ListBox x:Name="AnnounceHistoryList" Grid.Row="2" Background="Transparent" BorderThickness="0"
+                           SelectionChanged="AnnounceHistoryList_SelectionChanged">
                     <ListBox.ItemTemplate>
                       <DataTemplate x:DataType="local:AnnounceHistoryRow">
                         <Grid ColumnDefinitions="70,75,*,65,55,65,65,120" ColumnSpacing="8" Margin="8,5">
@@ -216,6 +217,16 @@
                       </DataTemplate>
                     </ListBox.ItemTemplate>
                   </ListBox>
+                  <Border Grid.Row="3" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0" Padding="8">
+                    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" RowSpacing="6">
+                      <TextBlock Text="Request" Classes="label" VerticalAlignment="Center" />
+                      <TextBox x:Name="HistoryRequestBox" Grid.Column="1" IsReadOnly="True" TextWrapping="NoWrap" />
+                      <Button x:Name="CopyAnnounceButton" Grid.Column="2" Content="Copy" Click="CopyAnnounce_Click" IsEnabled="False" Padding="10,5" />
+                      <TextBlock Grid.Row="1" Text="Diagnostic" Classes="label" VerticalAlignment="Center" />
+                      <TextBox x:Name="HistoryDiagnosticBox" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                               IsReadOnly="True" TextWrapping="Wrap" MaxHeight="72" />
+                    </Grid>
+                  </Border>
                 </Grid>
               </TabItem>
             </TabControl>

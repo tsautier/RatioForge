@@ -44,25 +44,61 @@ Get-ChildItem -LiteralPath $liteDirectory -Filter "*.pdb" -File | ForEach-Object
     Remove-Item -LiteralPath $_.FullName -Force
 }
 
-foreach ($executable in @($publishedExecutable, $publishedLiteExecutable)) {
+$measurements = @()
+foreach ($variant in @(
+    [pscustomobject]@{ Name = "self-contained"; Path = $publishedExecutable },
+    [pscustomobject]@{ Name = "lite"; Path = $publishedLiteExecutable }
+)) {
+    $executable = $variant.Path
     if (!(Test-Path -LiteralPath $executable)) {
         throw "Missing executable: $executable"
     }
 
+    $elapsedMilliseconds = $null
+    $peakWorkingSetBytes = $null
     if (!$SkipSmokeCheck) {
+        $stopwatch = [Diagnostics.Stopwatch]::StartNew()
+        $processOptions = @{
+            FilePath = $executable
+            ArgumentList = "--smoke-test"
+            PassThru = $true
+        }
         if ($Runtime.StartsWith("win-", [StringComparison]::Ordinal)) {
-            $smokeProcess = Start-Process -FilePath $executable -ArgumentList "--smoke-test" `
-                -WindowStyle Hidden -Wait -PassThru
-            $smokeExitCode = $smokeProcess.ExitCode
+            $processOptions.WindowStyle = "Hidden"
         }
-        else {
-            & $executable --smoke-test
-            $smokeExitCode = $LASTEXITCODE
-        }
+        $smokeProcess = Start-Process @processOptions
+        $peakWorkingSetBytes = 0L
+        do {
+            try {
+                $smokeProcess.Refresh()
+                $peakWorkingSetBytes = [Math]::Max($peakWorkingSetBytes, $smokeProcess.WorkingSet64)
+            }
+            catch [InvalidOperationException] {
+                # The short-lived smoke process can exit between the state check and Refresh().
+            }
+        } while (!$smokeProcess.WaitForExit(25))
+        $stopwatch.Stop()
+        $smokeExitCode = $smokeProcess.ExitCode
+        $elapsedMilliseconds = $stopwatch.ElapsedMilliseconds
 
         if ($smokeExitCode -ne 0) {
             throw "Smoke check failed for $executable with exit code $smokeExitCode."
         }
+        if ($peakWorkingSetBytes -le 0) {
+            throw "Smoke check could not measure peak working-set memory for $executable."
+        }
+        if ($elapsedMilliseconds -gt 15000) {
+            throw "Smoke check startup for $executable took $elapsedMilliseconds ms; expected at most 15000 ms."
+        }
+        if ($peakWorkingSetBytes -gt 256MB) {
+            throw "Smoke check for $executable used $peakWorkingSetBytes peak bytes; expected at most 256 MiB."
+        }
+    }
+
+    $measurements += [pscustomobject]@{
+        variant = $variant.Name
+        startupMilliseconds = $elapsedMilliseconds
+        peakWorkingSetBytes = $peakWorkingSetBytes
     }
 }
 
@@ -71,8 +107,8 @@ $liteBytes = (Get-Item -LiteralPath $publishedLiteExecutable).Length
 if ($selfContainedBytes -gt 100MB) {
     throw "$publishedExecutable is $selfContainedBytes bytes; expected at most 100 MiB."
 }
-if ($liteBytes -gt 35MB) {
-    throw "$publishedLiteExecutable is $liteBytes bytes; expected at most 35 MiB."
+if ($liteBytes -gt 30MB) {
+    throw "$publishedLiteExecutable is $liteBytes bytes; expected at most 30 MiB."
 }
 
 Copy-Item -LiteralPath $publishedExecutable -Destination $rawExecutable -Force
@@ -112,11 +148,23 @@ else {
     if ($LASTEXITCODE -ne 0) { throw "Archive creation failed for $Runtime." }
 }
 
+$metricsPath = Join-Path $OutputRoot "$baseName.metrics.json"
+[ordered]@{
+    schemaVersion = 1
+    version = $version
+    runtime = $Runtime
+    generatedUtc = [DateTimeOffset]::UtcNow.ToString("O")
+    selfContainedBytes = $selfContainedBytes
+    liteBytes = $liteBytes
+    liteReductionPercent = [Math]::Round((1 - ($liteBytes / [double]$selfContainedBytes)) * 100, 2)
+    measurements = $measurements
+} | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 $metricsPath
+
 $checksumPath = Join-Path $OutputRoot "$baseName.sha256"
-$checksums = foreach ($file in @($archive, $rawExecutable, $rawLiteExecutable)) {
+$checksums = foreach ($file in @($archive, $rawExecutable, $rawLiteExecutable, $metricsPath)) {
     $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $file
     "$($hash.Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))"
 }
 $checksums | Set-Content -Encoding ascii $checksumPath
 
-Write-Host "Published ${Runtime}: self-contained=$selfContainedBytes bytes, lite=$liteBytes bytes."
+Write-Host "Published ${Runtime}: self-contained=$selfContainedBytes bytes, lite=$liteBytes bytes; metrics=$metricsPath."

@@ -22,7 +22,7 @@ Use this checklist before creating and pushing a release tag.
 
 - [ ] Confirm every runtime has an archive, raw self-contained executable, raw Lite executable, and `.sha256` file.
 - [ ] Use `.zip` for `win-x64`, `.tar.gz` for Linux, and a `.tar.gz` containing `RatioForge.app` for each macOS architecture.
-- [ ] Confirm the release workflow re-downloads all 16 assets and verifies every checksum.
+- [ ] Confirm the release workflow re-downloads all 20 assets and verifies every checksum.
 - [ ] Do not add packaging tools for languages that are not used by the application.
 
 ## Commit And Tag

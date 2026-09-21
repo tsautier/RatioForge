@@ -82,6 +82,7 @@ jobs:
             artifacts/RatioForge-*-osx-arm64
             artifacts/RatioForge-*-osx-arm64-lite
             artifacts/*.sha256
+            artifacts/*.metrics.json
           if-no-files-found: error
           retention-days: 30
 
@@ -103,8 +104,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $assets = @(Get-ChildItem artifacts -File | ForEach-Object { $_.FullName })
-          if ($assets.Count -ne 16) {
-            throw "Expected 16 release assets, found $($assets.Count)."
+          if ($assets.Count -ne 20) {
+            throw "Expected 20 release assets, found $($assets.Count)."
           }
           gh release create "$env:GITHUB_REF_NAME" @assets `
             --title "RatioForge ${{ needs.validate.outputs.version }}" `
@@ -124,6 +125,7 @@ jobs:
             "RatioForge-$version-$runtime$extension"
             "RatioForge-$version-$runtime-lite$extension"
             "RatioForge-$version-$runtime.sha256"
+            "RatioForge-$version-$runtime.metrics.json"
           }
           $release = gh release view "$env:GITHUB_REF_NAME" --json assets | ConvertFrom-Json
           foreach ($name in $expected) {

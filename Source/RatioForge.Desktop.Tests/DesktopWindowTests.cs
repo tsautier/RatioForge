@@ -106,6 +106,9 @@ public sealed class DesktopWindowTests
             Assert.That(window.FindControl<ComboBox>("HistoryEventFilter"), Is.Not.Null);
             Assert.That(window.FindControl<ComboBox>("HistoryProtocolFilter"), Is.Not.Null);
             Assert.That(window.FindControl<ComboBox>("HistoryStatusFilter"), Is.Not.Null);
+            Assert.That(window.FindControl<TextBox>("HistoryRequestBox"), Is.Not.Null);
+            Assert.That(window.FindControl<TextBox>("HistoryDiagnosticBox"), Is.Not.Null);
+            Assert.That(window.FindControl<Button>("CopyAnnounceButton")?.IsEnabled, Is.False);
         });
     }
 
@@ -114,7 +117,9 @@ public sealed class DesktopWindowTests
     {
         AnnounceHistoryRow[] entries =
         [
-            new("12:00:00", "started", "https://tracker.example/abcdef0123456789abcdef0123456789/announce?token=secret", "HTTPS", "200", "10 ms", "900s", "key=ABC peer_id=private"),
+            new("12:00:00", "started", "https://tracker.example/abcdef0123456789abcdef0123456789/announce?token=secret", "HTTPS", "200", "10 ms", "900s", "key=ABC peer_id=private", 2,
+                "https://tracker.example/abcdef0123456789abcdef0123456789/announce?info_hash=private&peer_id=private&key=private",
+                "candidate=2/3; proxy_username=private", "https://cdn.example/abcdef0123456789abcdef0123456789"),
         ];
 
         string csv = AnnounceHistoryExporter.ToCsv(entries);
@@ -122,11 +127,12 @@ public sealed class DesktopWindowTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(csv, Does.Contain("Time,Event,Tracker"));
+            Assert.That(csv, Does.Contain("Time,Attempt,Event,Tracker"));
             Assert.That(csv, Does.Not.Contain("abcdef0123456789abcdef0123456789"));
             Assert.That(csv, Does.Not.Contain("secret"));
             Assert.That(json, Does.Contain("REDACTED"));
             Assert.That(json, Does.Not.Contain("peer_id=private"));
+            Assert.That(json, Does.Not.Contain("proxy_username=private"));
         });
     }
 
@@ -141,6 +147,10 @@ public sealed class DesktopWindowTests
         {
             Assert.That(settings.FindControl<ListBox>("SessionProfilesList"), Is.Not.Null);
             Assert.That(settings.FindControl<TextBox>("SessionProfileNameBox"), Is.Not.Null);
+            Assert.That(settings.FindControl<Button>("ImportSessionProfilesButton"), Is.Not.Null);
+            Assert.That(settings.FindControl<Button>("ExportSessionProfilesButton"), Is.Not.Null);
+            Assert.That(settings.FindControl<Button>("ImportClientProfilesButton"), Is.Not.Null);
+            Assert.That(settings.FindControl<Button>("ExportClientProfilesButton"), Is.Not.Null);
             Assert.That(update.FindControl<Button>("DownloadButton")?.IsVisible, Is.True);
             Assert.That(update.FindControl<TextBox>("ReleaseNotesText")?.Text, Is.EqualTo("Release notes"));
         });

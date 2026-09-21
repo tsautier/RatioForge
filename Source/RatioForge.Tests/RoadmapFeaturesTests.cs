@@ -172,6 +172,25 @@ public sealed class RoadmapFeaturesTests
     }
 
     [Test]
+    public void AnonymizedAnnounceRequestShouldHideIdentityAndTrackerCredentials()
+    {
+        const string request = "https://tracker.example/abcdef0123456789abcdef0123456789/announce" +
+            "?info_hash=001122&peer_id=-qB5230-private&key=A1B2C3D4&token=private";
+
+        string redacted = SensitiveDataRedactor.RedactUrl(request);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(redacted, Does.Contain("REDACTED"));
+            Assert.That(redacted, Does.Not.Contain("abcdef0123456789abcdef0123456789"));
+            Assert.That(redacted, Does.Not.Contain("001122"));
+            Assert.That(redacted, Does.Not.Contain("-qB5230-private"));
+            Assert.That(redacted, Does.Not.Contain("A1B2C3D4"));
+            Assert.That(redacted, Does.Not.Contain("token=private"));
+        });
+    }
+
+    [Test]
     public void UdpAnnounceResponseShouldExposeTrackerStatistics()
     {
         const int transactionId = 123;

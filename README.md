@@ -19,10 +19,10 @@
   - Deluge, Transmission, KTorrent
   - And more!
 - **Current default identity**: qBittorrent 5.2.3, the latest stable release verified by the project
-- **Persistent settings**: Cross-platform session defaults and named profiles, automatic/dark/light appearance, IPv4/IPv6 source selection, HTTP/SOCKS5 proxy, speed randomization, activity logging, and opt-in debug logs
+- **Persistent settings**: Cross-platform session defaults and named profiles with JSON import/export, automatic/dark/light appearance, IPv4/IPv6 source selection, HTTP/SOCKS5 proxy, speed randomization, activity logging, and opt-in debug logs
 - **Release updates**: Automatic and manual checks with release notes, platform-aware downloads, and SHA256 verification
 - **Session controls**: Immediate manual announces, clean reset, lifecycle events, live completion/ratio/time, and configurable automatic stopping
-- **Diagnostics**: Privacy-filtered activity/debug logs, filterable CSV/JSON announce history, and pre-session DNS/IP/TLS/proxy checks
+- **Diagnostics**: Privacy-filtered activity/debug logs, filterable CSV/JSON announce history with per-attempt request details, and pre-session DNS/IP/TLS/proxy checks
 - **Cross-platform**: Native desktop builds for Windows, Linux, and macOS
 - **Tracker networking**: HTTP, HTTPS, and UDP trackers over IPv4 or IPv6, `announce-list` tiers, failover, automatic routing, and explicit local-address binding
 - **Modernized**: Rebuilt for .NET 10 and Avalonia UI
@@ -82,7 +82,7 @@ For support, use the built-in Help menu to open the GitHub repository or create 
 
 ### Custom client profiles
 
-RatioForge loads its built-in emulations from `clients.json`. To add or replace a profile without rebuilding, create `clients.json` in the configuration folder shown in Settings. Existing names are replaced; new names are appended when RatioForge next starts.
+RatioForge loads its built-in emulations from `clients.json`. Settings can export the effective catalog and import a versioned replacement without rebuilding. The imported file is installed at the configuration path shown in Settings; existing names are replaced and new names are appended immediately.
 
 ```json
 {
@@ -103,14 +103,13 @@ RatioForge loads its built-in emulations from `clients.json`. To add or replace 
 
 Supported random kinds are `Alphanumeric`, `LowerAlphanumeric`, `Numeric`, `Hex`, `Random`, `UrlSafe`, `TransmissionChecksum`, and `HexRange`. A malformed custom file is ignored, reported in Activity, and never replaces the built-in catalog.
 
-## What's New in 1.2.1 (RatioForge)
+## What's New in 1.2.2 (RatioForge)
 
-- **Tracker control**: Select an `announce-list` candidate manually and retry it immediately
-- **History exports**: Filter announces and export redacted CSV or JSON records
-- **Safer accounting**: Pause upload while the tracker explicitly reports zero leechers
-- **Accurate identities**: Correct stopped announces, random Peer ID bytes, Transmission checksums, and timed uTorrent/BitTorrent key rotation
-- **External client profiles**: Modern emulations live in `clients.json`; `%APPDATA%/RatioForge/clients.json` (or the platform application-data equivalent) can add or replace profiles at startup
-- **Project support**: Structured GitHub bug and feature forms plus a private security-reporting policy
+- **Compatibility guardrails**: Differential tests compare refactored announces with historical parameter output
+- **Portable profiles**: Import and export session and client profiles from Settings without exposing proxy passwords
+- **Attempt diagnostics**: Inspect and copy a privacy-filtered request and protocol diagnostic for every announce attempt
+- **Broader fixtures**: Cover CDN-style passkeys, IPv6 UDP, complex tracker tiers, nested paths, and large torrents
+- **Measured releases**: Strict Lite size budgets and per-runtime startup, memory, and size metrics
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.
 The current compatibility review is recorded in the [September 2026 client profile audit](docs/client-profile-audit-2026-09-21.md).

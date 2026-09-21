@@ -69,6 +69,7 @@ public sealed record SessionProfile(
 /// <summary>Persists named profiles without storing proxy passwords.</summary>
 public static class SessionProfileStore
 {
+    private const int ExchangeFormatVersion = 1;
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         WriteIndented = true,
@@ -115,12 +116,79 @@ public static class SessionProfileStore
             Directory.CreateDirectory(directory);
         }
 
-        SessionProfile[] normalized = profiles
-            .Where(profile => !string.IsNullOrWhiteSpace(profile.Name))
-            .GroupBy(profile => profile.Name.Trim(), StringComparer.OrdinalIgnoreCase)
-            .Select(group => group.Last() with { Name = group.Key })
-            .OrderBy(profile => profile.Name, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        SessionProfile[] normalized = Normalize(profiles);
         File.WriteAllText(profilePath, JsonSerializer.Serialize(normalized, SerializerOptions));
     }
+
+    /// <summary>Exports portable named profiles using a versioned JSON envelope.</summary>
+    public static void Export(IEnumerable<SessionProfile> profiles, string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        SessionProfile[] normalized = Normalize(profiles);
+        WriteJson(path, new SessionProfileExchangeDocument(ExchangeFormatVersion, normalized));
+    }
+
+    /// <summary>Imports and validates a versioned exchange file or a legacy profile array.</summary>
+    public static IReadOnlyList<SessionProfile> Import(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        using JsonDocument json = JsonDocument.Parse(File.ReadAllText(path));
+        SessionProfile[] profiles = json.RootElement.ValueKind switch
+        {
+            JsonValueKind.Array => JsonSerializer.Deserialize<SessionProfile[]>(json.RootElement, SerializerOptions) ?? [],
+            JsonValueKind.Object => ReadExchangeDocument(json.RootElement),
+            _ => throw new InvalidDataException("The session profile file must contain a JSON object or array."),
+        };
+        return Normalize(profiles);
+    }
+
+    /// <summary>Merges imported profiles by name, with imported entries taking precedence.</summary>
+    public static IReadOnlyList<SessionProfile> Merge(
+        IEnumerable<SessionProfile> existing,
+        IEnumerable<SessionProfile> imported) => Normalize(existing.Concat(imported));
+
+    private static SessionProfile[] ReadExchangeDocument(JsonElement root)
+    {
+        SessionProfileExchangeDocument document = root.Deserialize<SessionProfileExchangeDocument>(SerializerOptions)
+            ?? throw new InvalidDataException("The session profile exchange file is empty.");
+        if (document.FormatVersion != ExchangeFormatVersion)
+        {
+            throw new InvalidDataException($"Unsupported session profile format version {document.FormatVersion}.");
+        }
+
+        return document.Profiles ?? [];
+    }
+
+    private static SessionProfile[] Normalize(IEnumerable<SessionProfile> profiles)
+    {
+        ArgumentNullException.ThrowIfNull(profiles);
+        return profiles
+            .Where(profile => profile is not null && !string.IsNullOrWhiteSpace(profile.Name))
+            .Select(profile => Normalize(profile))
+            .GroupBy(profile => profile.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.Last())
+            .OrderBy(profile => profile.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static SessionProfile Normalize(SessionProfile profile)
+    {
+        var settings = new ApplicationSettings();
+        profile.ApplyTo(settings);
+        return SessionProfile.FromSettings(profile.Name.Trim(), settings);
+    }
+
+    private static void WriteJson<T>(string path, T value)
+    {
+        string fullPath = Path.GetFullPath(path);
+        string? directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        File.WriteAllText(fullPath, JsonSerializer.Serialize(value, SerializerOptions));
+    }
+
+    private sealed record SessionProfileExchangeDocument(int FormatVersion, SessionProfile[] Profiles);
 }

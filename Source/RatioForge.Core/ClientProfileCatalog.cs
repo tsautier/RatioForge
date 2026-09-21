@@ -28,12 +28,17 @@ public static class ClientProfileCatalog
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNameCaseInsensitive = true,
+        WriteIndented = true,
     };
 
-    static ClientProfileCatalog()
+    static ClientProfileCatalog() => Reload();
+
+    /// <summary>Reloads the embedded catalog and the optional application-data override.</summary>
+    public static void Reload()
     {
-        IReadOnlyList<ClientProfileDefinition> definitions = LoadDefinitions();
-        var profiles = definitions.Select(definition => new ClientProfile(
+        LoadWarning = string.Empty;
+        Definitions = LoadDefinitions();
+        var profiles = Definitions.Select(definition => new ClientProfile(
             definition.Name,
             definition.UserAgent,
             definition.DefaultPeerCount,
@@ -57,10 +62,31 @@ public static class ClientProfileCatalog
     public static string LoadWarning { get; private set; } = string.Empty;
 
     /// <summary>Gets all supported identities, with current data-driven clients first.</summary>
-    public static IReadOnlyList<ClientProfile> All { get; }
+    public static IReadOnlyList<ClientProfile> All { get; private set; } = [];
 
     /// <summary>Gets the identity selected for a new tracker session.</summary>
-    public static ClientProfile Default { get; }
+    public static ClientProfile Default { get; private set; } = null!;
+
+    /// <summary>Gets the effective data-driven definitions, including user overrides.</summary>
+    public static IReadOnlyList<ClientProfileDefinition> Definitions { get; private set; } = [];
+
+    /// <summary>Exports the effective data-driven client catalog.</summary>
+    public static void Export(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        WriteCatalog(path, Definitions);
+    }
+
+    /// <summary>Validates and installs a custom client catalog, then reloads the effective profiles.</summary>
+    public static int Import(string sourcePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+        ClientCatalogDocument document = Deserialize(File.ReadAllText(sourcePath));
+        IReadOnlyList<ClientProfileDefinition> imported = ValidateAndMerge(document.Clients, []);
+        WriteCatalog(UserCatalogPath, imported);
+        Reload();
+        return imported.Count;
+    }
 
     private static ClientProfile CreateLegacyProfile(string name)
     {
@@ -102,9 +128,17 @@ public static class ClientProfileCatalog
         }
     }
 
-    private static ClientCatalogDocument Deserialize(string json) =>
-        JsonSerializer.Deserialize<ClientCatalogDocument>(json, SerializerOptions)
-        ?? throw new InvalidDataException("The client catalog is empty.");
+    private static ClientCatalogDocument Deserialize(string json)
+    {
+        ClientCatalogDocument document = JsonSerializer.Deserialize<ClientCatalogDocument>(json, SerializerOptions)
+            ?? throw new InvalidDataException("The client catalog is empty.");
+        if (document.FormatVersion != 1)
+        {
+            throw new InvalidDataException($"Unsupported client profile format version {document.FormatVersion}.");
+        }
+
+        return document;
+    }
 
     private static IReadOnlyList<ClientProfileDefinition> ValidateAndMerge(
         IEnumerable<ClientProfileDefinition> builtIn,
@@ -146,8 +180,23 @@ public static class ClientProfileCatalog
     internal static IReadOnlyList<ClientProfileDefinition> ParseDefinitions(string json) =>
         ValidateAndMerge(Deserialize(json).Clients, []);
 
+    private static void WriteCatalog(string path, IEnumerable<ClientProfileDefinition> definitions)
+    {
+        string fullPath = Path.GetFullPath(path);
+        string? directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var document = new ClientCatalogDocument { FormatVersion = 1, Clients = definitions.ToList() };
+        File.WriteAllText(fullPath, JsonSerializer.Serialize(document, SerializerOptions));
+    }
+
     private sealed class ClientCatalogDocument
     {
+        public int FormatVersion { get; init; } = 1;
+
         public List<ClientProfileDefinition> Clients { get; init; } = [];
     }
 }

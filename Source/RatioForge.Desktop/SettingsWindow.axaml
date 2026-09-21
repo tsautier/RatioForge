@@ -121,7 +121,7 @@
         </ScrollViewer>
       </TabItem>
       <TabItem Header="Profiles">
-        <Grid Margin="8,18" RowDefinitions="Auto,*,Auto" RowSpacing="12">
+        <Grid Margin="8,18" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="12">
           <StackPanel Spacing="6">
             <TextBlock Classes="section-title" Text="Named session profiles" />
             <TextBlock Foreground="{DynamicResource SecondaryTextBrush}" Text="Profiles contain client, rates, port, proxy, address, and randomization settings." TextWrapping="Wrap" />
@@ -135,13 +135,27 @@
               <Button Content="Delete" Click="DeleteProfile_Click" Padding="12,7" />
             </StackPanel>
           </Grid>
+          <Grid Grid.Row="3" RowDefinitions="Auto,Auto" RowSpacing="8">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button x:Name="ImportSessionProfilesButton" Content="Import sessions" Click="ImportSessionProfiles_Click" Padding="12,7" />
+              <Button x:Name="ExportSessionProfilesButton" Content="Export sessions" Click="ExportSessionProfiles_Click" Padding="12,7" />
+            </StackPanel>
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+              <Button x:Name="ImportClientProfilesButton" Content="Import clients" Click="ImportClientProfiles_Click" Padding="12,7" />
+              <Button x:Name="ExportClientProfilesButton" Content="Export clients" Click="ExportClientProfiles_Click" Padding="12,7" />
+              <TextBlock Text="Client imports apply immediately." Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Grid>
         </Grid>
       </TabItem>
     </TabControl>
 
     <Border Grid.Row="1" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0" Padding="18,12">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-        <TextBlock x:Name="ValidationText" Foreground="{DynamicResource DangerTextBrush}" VerticalAlignment="Center" TextWrapping="Wrap" IsVisible="False" />
+        <StackPanel>
+          <TextBlock x:Name="ValidationText" Foreground="{DynamicResource DangerTextBrush}" VerticalAlignment="Center" TextWrapping="Wrap" IsVisible="False" />
+          <TextBlock x:Name="NoticeText" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" TextWrapping="Wrap" IsVisible="False" />
+        </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
           <Button Content="Defaults" Click="ResetDefaults_Click" Padding="16,8" />
           <Button Content="Cancel" Click="Cancel_Click" Padding="16,8" />

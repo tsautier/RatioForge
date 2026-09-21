@@ -38,10 +38,15 @@ Additional 1.2.x maintenance:
 - Completed in 1.2.1: security policy, structured issue forms, and expanded redaction tests.
 - Completed in 1.2.1: data-driven modern client profiles with application-data overrides.
 - Completed in 1.2.1: upstream compatibility audit and applicable announce/identity safety fixes.
+- Completed in 1.2.2: differential announce tests against deterministic historical HTTP(S) parameter output.
+- Completed in 1.2.2: versioned import/export for session and data-driven client profiles.
+- Completed in 1.2.2: per-attempt history details and one-click copying of anonymized announce requests.
+- Completed in 1.2.2: anonymized real-world-shaped torrents and complex `announce-list` regression fixtures.
+- Completed in 1.2.2: stricter Lite size budgets plus release startup, peak-memory, size, and reduction metrics.
 - Completed in 1.2.0: structured announce history covers tracker communication and readable diagnostics cover common network and proxy failures.
 - Continue improving error handling as new tracker and malformed torrent cases are reported.
 - Completed early: sample torrent fixtures now cover parser and tracker behavior; continue extending them when regressions are found.
-- Active: CI enforces startup checks and size budgets for the compressed self-contained and Lite single-file releases.
+- Completed in 1.2.2: CI enforces measured startup, peak-memory, and stricter size budgets for compressed self-contained and framework-dependent Lite single-file releases.
 - Add a signed release path if code-signing certificates become available.
 - Package a signed and notarized macOS `.app` bundle when Apple signing credentials become available.
 

@@ -12,9 +12,12 @@ public static class SensitiveDataRedactor
         "auth",
         "authkey",
         "credential",
+        "info_hash",
+        "key",
         "keypass",
         "password",
         "passkey",
+        "peer_id",
         "secret",
         "token",
     };

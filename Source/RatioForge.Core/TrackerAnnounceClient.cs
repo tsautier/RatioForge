@@ -94,30 +94,7 @@ public sealed class TrackerAnnounceClient : IDisposable
         }
 
         IPAddress? localAddress = NetworkAddressCatalog.ParseOptional(options.LocalIp);
-        TorrentClient client = options.Profile.CreateClient();
-        ClientIdentity identity = options.Identity ?? new ClientIdentity(client.Key, client.PeerID);
-        long left = options.Left ?? Math.Max(0, options.Torrent.TotalSize - options.Downloaded);
-        if (left is < 0 || left > options.Torrent.TotalSize)
-        {
-            throw new ArgumentOutOfRangeException(nameof(options), "Left must be between zero and the torrent size.");
-        }
-
-        var info = new TorrentInfo(options.Uploaded, options.Downloaded)
-        {
-            tracker = trackerUrl,
-            hash = options.Torrent.InfoHash,
-            left = left,
-            totalsize = options.Torrent.TotalSize,
-            peerID = identity.PeerId,
-            port = options.Port.ToString(CultureInfo.InvariantCulture),
-            key = identity.Key,
-            numberOfPeers = options.PeerCount.ToString(CultureInfo.InvariantCulture),
-        };
-
-        string trackerEvent = string.IsNullOrWhiteSpace(options.Event)
-            ? string.Empty
-            : "&event=" + options.Event.Trim().ToLowerInvariant();
-        string requestUrl = TrackerUrlBuilder.BuildAnnounce(info, client, trackerEvent, localAddress?.ToString() ?? string.Empty);
+        string requestUrl = BuildHttpRequestUrl(options, trackerUrl, localAddress);
         var uri = new Uri(requestUrl, UriKind.Absolute);
 
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
@@ -224,6 +201,48 @@ public sealed class TrackerAnnounceClient : IDisposable
     public void Dispose()
     {
         // Injected HttpClient instances remain owned by their caller.
+    }
+
+    /// <summary>Builds an HTTP tracker request without sending it, for compatibility verification.</summary>
+    public static string BuildHttpRequestUrl(TrackerAnnounceOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        string trackerUrl = options.TrackerUrl ?? options.Torrent.Tracker;
+        return BuildHttpRequestUrl(options, trackerUrl, NetworkAddressCatalog.ParseOptional(options.LocalIp));
+    }
+
+    private static string BuildHttpRequestUrl(
+        TrackerAnnounceOptions options,
+        string trackerUrl,
+        IPAddress? localAddress)
+    {
+        TorrentClient client = options.Profile.CreateClient();
+        ClientIdentity identity = options.Identity ?? new ClientIdentity(client.Key, client.PeerID);
+        long left = options.Left ?? Math.Max(0, options.Torrent.TotalSize - options.Downloaded);
+        if (left is < 0 || left > options.Torrent.TotalSize)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "Left must be between zero and the torrent size.");
+        }
+
+        var info = new TorrentInfo(options.Uploaded, options.Downloaded)
+        {
+            tracker = trackerUrl,
+            hash = options.Torrent.InfoHash,
+            left = left,
+            totalsize = options.Torrent.TotalSize,
+            peerID = identity.PeerId,
+            port = options.Port.ToString(CultureInfo.InvariantCulture),
+            key = identity.Key,
+            numberOfPeers = options.PeerCount.ToString(CultureInfo.InvariantCulture),
+        };
+        string trackerEvent = string.IsNullOrWhiteSpace(options.Event)
+            ? string.Empty
+            : "&event=" + options.Event.Trim().ToLowerInvariant();
+        return TrackerUrlBuilder.BuildAnnounce(
+            info,
+            client,
+            trackerEvent,
+            localAddress?.ToString() ?? string.Empty);
     }
 
     internal static HttpClient CreateHttpClient(

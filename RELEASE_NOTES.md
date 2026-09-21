@@ -1,19 +1,17 @@
-# RatioForge 1.2.1
+# RatioForge 1.2.2
 
-RatioForge 1.2.1 stabilizes the 1.2 tracker workflow and incorporates applicable compatibility fixes identified after reviewing current RatioMaster.NET changes.
+RatioForge 1.2.2 strengthens compatibility testing, profile portability, announce diagnostics, and release-size observability.
 
-- Filter and export redacted announce history as CSV or JSON
-- Select an `announce-list` tracker manually and retry it immediately
-- Pause upload accounting while the tracker explicitly reports zero leechers
-- Request zero peers on stopped HTTP(S) and UDP announces
-- Correct arbitrary Peer ID byte generation, Transmission check digits, and Transmission keys
-- Rotate generated uTorrent and BitTorrent tracker keys every ten minutes
-- Load modern emulations from an embedded and user-overridable `clients.json`
-- Add current qBittorrent, uTorrent, BitTorrent, Transmission, Deluge, Vuze, and rTorrent profiles
-- Redact local addresses and proxy usernames from support exports
-- Add structured GitHub issue forms and a private security-reporting policy
-- Native self-contained and Lite builds for Windows x64, Linux x64, macOS Intel, and macOS Apple Silicon
-- SHA256 verification files for every release package
+- Compare refactored HTTP(S) announces with deterministic historical output for representative clients and lifecycle events
+- Import and export versioned session profiles and data-driven client profiles from Settings
+- Keep proxy passwords out of portable session-profile exports
+- Inspect each announce attempt with an anonymized request, final destination, and protocol-specific diagnostic
+- Copy the selected anonymized announce request in one click
+- Cover CDN-style HTTPS passkeys, IPv6 UDP, complex tracker tiers, nested paths, and large multi-file torrents with anonymized fixtures
+- Preserve full relative paths for files inside multi-file torrents
+- Enforce a stricter 30 MiB limit for Lite single-file builds while retaining supported compression for self-contained bundles
+- Publish per-runtime JSON metrics for startup time, peak memory, executable sizes, and Lite reduction
+- Verify all 20 release assets and include metrics in each SHA256 manifest
 
 HTTP and SOCKS proxies apply to HTTP(S) trackers. UDP trackers use direct UDP because those proxy protocols cannot relay BEP 15 datagrams through the current .NET transport.
 

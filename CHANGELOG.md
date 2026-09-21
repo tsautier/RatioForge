@@ -5,6 +5,24 @@ All notable changes to RatioForge will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-09-21
+
+### Added
+- **Differential announce suite:** Deterministic tests compare the refactored HTTP(S) request builder with historical parameter output across representative clients and every lifecycle event.
+- **Portable profile exchange:** Settings can import and export versioned session-profile and client-profile JSON files; session exports never contain proxy passwords.
+- **Attempt diagnostics:** Selecting an announce now reveals its attempt number, anonymized request, final destination, and protocol-specific response or failure details, with one-click copy.
+- **Real-world torrent fixtures:** Anonymized tests cover CDN-style HTTPS passkeys, IPv6 UDP trackers, malformed and duplicate tracker tiers, nested paths, and multi-file torrents larger than 4 GiB.
+- **Release metrics:** Every platform release includes machine-readable startup, peak-memory, executable-size, and Lite-reduction measurements protected by the SHA256 manifest.
+
+### Changed
+- **Lite size budget:** Framework-dependent single-file executables now have a stricter 30 MiB size budget; self-contained bundles retain supported single-file compression.
+- **Release verification:** Tagged releases publish and verify 20 assets, including one metrics document for each supported runtime.
+
+### Fixed
+- **Nested torrent paths:** Multi-file torrents preserve their full relative paths separately from their display names.
+- **Diagnostic privacy:** Copied announce requests redact info hashes, peer IDs, tracker keys, passkeys, tokens, local addresses, and proxy credentials.
+- **Exchange compatibility:** Import rejects unsupported future profile formats instead of silently misreading them.
+
 ## [1.2.1] - 2026-09-21
 
 ### Added
@@ -369,6 +387,7 @@ For complete historical changelog, see [HISTORY.TXT](HISTORY.TXT)
 
 [1.1.2]: https://github.com/tsautier/RatioForge/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/tsautier/RatioForge/compare/v1.1.0...v1.1.1
+[1.2.2]: https://github.com/tsautier/RatioForge/releases/tag/v1.2.2
 [1.2.1]: https://github.com/tsautier/RatioForge/releases/tag/v1.2.1
 [1.2.0]: https://github.com/tsautier/RatioForge/releases/tag/v1.2.0
 [1.1.0]: https://github.com/tsautier/RatioForge/releases/tag/v1.1.0

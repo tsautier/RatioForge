@@ -81,5 +81,6 @@ jobs:
             artifacts/RatioForge-*-osx-arm64
             artifacts/RatioForge-*-osx-arm64-lite
             artifacts/*.sha256
+            artifacts/*.metrics.json
           if-no-files-found: error
           retention-days: 14

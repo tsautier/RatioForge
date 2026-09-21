@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 
 public partial class SettingsWindow : Window
 {
@@ -210,6 +211,116 @@ public partial class SettingsWindow : Window
         HideValidation();
     }
 
+    private async void ImportSessionProfiles_Click(object? sender, RoutedEventArgs e)
+    {
+        IStorageFile? file = await PickJsonFileAsync("Import session profiles");
+        if (file is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IReadOnlyList<SessionProfile> imported = SessionProfileStore.Import(file.Path.LocalPath);
+            IReadOnlyList<SessionProfile> merged = SessionProfileStore.Merge(sessionProfiles, imported);
+            sessionProfiles.Clear();
+            foreach (SessionProfile profile in merged)
+            {
+                sessionProfiles.Add(profile);
+            }
+
+            SessionProfileStore.Save(sessionProfiles);
+            ShowNotice($"Imported {imported.Count} session profile(s). Existing names were replaced.");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or System.Text.Json.JsonException)
+        {
+            ShowValidation("Could not import session profiles: " + exception.Message);
+        }
+    }
+
+    private async void ExportSessionProfiles_Click(object? sender, RoutedEventArgs e)
+    {
+        IStorageFile? file = await SaveJsonFileAsync("Export session profiles", "ratioforge-session-profiles.json");
+        if (file is null)
+        {
+            return;
+        }
+
+        try
+        {
+            SessionProfileStore.Export(sessionProfiles, file.Path.LocalPath);
+            ShowNotice($"Exported {sessionProfiles.Count} session profile(s). Proxy passwords are never included.");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            ShowValidation("Could not export session profiles: " + exception.Message);
+        }
+    }
+
+    private async void ImportClientProfiles_Click(object? sender, RoutedEventArgs e)
+    {
+        IStorageFile? file = await PickJsonFileAsync("Import client profiles");
+        if (file is null)
+        {
+            return;
+        }
+
+        try
+        {
+            string selectedName = (ProfileCombo.SelectedItem as ClientProfile)?.Name ?? settings.DefaultProfileName;
+            int imported = ClientProfileCatalog.Import(file.Path.LocalPath);
+            ProfileCombo.ItemsSource = ClientProfileCatalog.All;
+            ProfileCombo.SelectedItem = ClientProfileCatalog.All.FirstOrDefault(profile => profile.Name == selectedName)
+                ?? ClientProfileCatalog.Default;
+            ClientCatalogPathBox.Text = ClientProfileCatalog.UserCatalogPath;
+            ShowNotice($"Imported {imported} client profile(s) into the application-data catalog.");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or System.Text.Json.JsonException)
+        {
+            ShowValidation("Could not import client profiles: " + exception.Message);
+        }
+    }
+
+    private async void ExportClientProfiles_Click(object? sender, RoutedEventArgs e)
+    {
+        IStorageFile? file = await SaveJsonFileAsync("Export client profiles", "ratioforge-client-profiles.json");
+        if (file is null)
+        {
+            return;
+        }
+
+        try
+        {
+            ClientProfileCatalog.Export(file.Path.LocalPath);
+            ShowNotice($"Exported {ClientProfileCatalog.Definitions.Count} data-driven client profile(s).");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            ShowValidation("Could not export client profiles: " + exception.Message);
+        }
+    }
+
+    private async Task<IStorageFile?> PickJsonFileAsync(string title)
+    {
+        IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            FileTypeFilter = [JsonFileType()],
+        });
+        return files.FirstOrDefault();
+    }
+
+    private async Task<IStorageFile?> SaveJsonFileAsync(string title, string suggestedName) =>
+        await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = title,
+            SuggestedFileName = suggestedName,
+            FileTypeChoices = [JsonFileType()],
+        });
+
+    private static FilePickerFileType JsonFileType() => new("JSON") { Patterns = ["*.json"] };
+
     private ApplicationSettings CaptureSessionControls()
     {
         var snapshot = new ApplicationSettings
@@ -263,6 +374,7 @@ public partial class SettingsWindow : Window
 
     private void ShowValidation(string message)
     {
+        NoticeText.IsVisible = false;
         ValidationText.Text = message;
         ValidationText.IsVisible = true;
     }
@@ -271,6 +383,15 @@ public partial class SettingsWindow : Window
     {
         ValidationText.Text = string.Empty;
         ValidationText.IsVisible = false;
+        NoticeText.Text = string.Empty;
+        NoticeText.IsVisible = false;
+    }
+
+    private void ShowNotice(string message)
+    {
+        ValidationText.IsVisible = false;
+        NoticeText.Text = message;
+        NoticeText.IsVisible = true;
     }
 
     private void Cancel_Click(object? sender, RoutedEventArgs e) => Close(false);
