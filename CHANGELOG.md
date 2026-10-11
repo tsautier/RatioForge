@@ -5,6 +5,15 @@ All notable changes to RatioForge will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2026-10-11
+
+### Changed
+- **Dependencies:** Updated Avalonia desktop packages to 12.1.3 and NUnit to 5.0.0.
+
+### Fixed
+- **Linux torrent loading:** Prevented reentrant tracker-selector updates from recursively calling `UpdateTrackerDisplay()` until the process exhausted its stack. Loading a torrent and manually switching `announce-list` candidates now use a guarded display refresh.
+- **Regression coverage:** Added an Avalonia headless test that loads a multi-tracker document and changes the selected tracker without recursive refresh.
+
 ## [1.2.2] - 2026-09-21
 
 ### Added
@@ -387,6 +396,7 @@ For complete historical changelog, see [HISTORY.TXT](HISTORY.TXT)
 
 [1.1.2]: https://github.com/tsautier/RatioForge/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/tsautier/RatioForge/compare/v1.1.0...v1.1.1
+[1.2.3]: https://github.com/tsautier/RatioForge/releases/tag/v1.2.3
 [1.2.2]: https://github.com/tsautier/RatioForge/releases/tag/v1.2.2
 [1.2.1]: https://github.com/tsautier/RatioForge/releases/tag/v1.2.1
 [1.2.0]: https://github.com/tsautier/RatioForge/releases/tag/v1.2.0

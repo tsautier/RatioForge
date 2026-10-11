@@ -37,6 +37,7 @@ public partial class MainWindow : Window
     private long downloaded;
     private long initialCompletedBytes;
     private bool announcing;
+    private bool updatingTrackerDisplay;
     private bool completionAnnounced;
     private bool closingInProgress;
     private bool allowClose;
@@ -279,7 +280,8 @@ public partial class MainWindow : Window
 
     private void TrackerCombo_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (torrent is null || TrackerCombo.SelectedIndex < 0 || TrackerCombo.SelectedIndex >= torrent.Trackers.Count)
+        if (updatingTrackerDisplay || torrent is null ||
+            TrackerCombo.SelectedIndex < 0 || TrackerCombo.SelectedIndex >= torrent.Trackers.Count)
         {
             return;
         }
@@ -994,24 +996,37 @@ public partial class MainWindow : Window
 
     private void UpdateTrackerDisplay()
     {
-        if (torrent is null || torrent.Trackers.Count == 0)
+        if (updatingTrackerDisplay)
         {
-            TrackerText.Text = "-";
-            TrackerCombo.ItemsSource = null;
-            TrackerCombo.IsEnabled = false;
-            RetryTrackerButton.IsEnabled = false;
             return;
         }
 
-        activeTrackerIndex = Math.Clamp(activeTrackerIndex, 0, torrent.Trackers.Count - 1);
-        TrackerText.Text = torrent.Trackers.Count == 1
-            ? torrent.Trackers[activeTrackerIndex]
-            : $"{torrent.Trackers[activeTrackerIndex]} ({activeTrackerIndex + 1}/{torrent.Trackers.Count})";
-        TrackerCombo.ItemsSource = torrent.Trackers.Select((tracker, index) =>
-            $"{index + 1}. {SensitiveDataRedactor.RedactUrl(tracker)}").ToArray();
-        TrackerCombo.SelectedIndex = activeTrackerIndex;
-        TrackerCombo.IsEnabled = !announcing;
-        RetryTrackerButton.IsEnabled = sessionCancellation is { IsCancellationRequested: false } && !announcing;
+        updatingTrackerDisplay = true;
+        try
+        {
+            if (torrent is null || torrent.Trackers.Count == 0)
+            {
+                TrackerText.Text = "-";
+                TrackerCombo.ItemsSource = null;
+                TrackerCombo.IsEnabled = false;
+                RetryTrackerButton.IsEnabled = false;
+                return;
+            }
+
+            activeTrackerIndex = Math.Clamp(activeTrackerIndex, 0, torrent.Trackers.Count - 1);
+            TrackerText.Text = torrent.Trackers.Count == 1
+                ? torrent.Trackers[activeTrackerIndex]
+                : $"{torrent.Trackers[activeTrackerIndex]} ({activeTrackerIndex + 1}/{torrent.Trackers.Count})";
+            TrackerCombo.ItemsSource = torrent.Trackers.Select((tracker, index) =>
+                $"{index + 1}. {SensitiveDataRedactor.RedactUrl(tracker)}").ToArray();
+            TrackerCombo.SelectedIndex = activeTrackerIndex;
+            TrackerCombo.IsEnabled = !announcing;
+            RetryTrackerButton.IsEnabled = sessionCancellation is { IsCancellationRequested: false } && !announcing;
+        }
+        finally
+        {
+            updatingTrackerDisplay = false;
+        }
     }
 
     private void HistoryFilter_SelectionChanged(object? sender, SelectionChangedEventArgs e) => ApplyHistoryFilter();

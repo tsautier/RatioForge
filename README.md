@@ -103,13 +103,12 @@ RatioForge loads its built-in emulations from `clients.json`. Settings can expor
 
 Supported random kinds are `Alphanumeric`, `LowerAlphanumeric`, `Numeric`, `Hex`, `Random`, `UrlSafe`, `TransmissionChecksum`, and `HexRange`. A malformed custom file is ignored, reported in Activity, and never replaces the built-in catalog.
 
-## What's New in 1.2.2 (RatioForge)
+## What's New in 1.2.3 (RatioForge)
 
-- **Compatibility guardrails**: Differential tests compare refactored announces with historical parameter output
-- **Portable profiles**: Import and export session and client profiles from Settings without exposing proxy passwords
-- **Attempt diagnostics**: Inspect and copy a privacy-filtered request and protocol diagnostic for every announce attempt
-- **Broader fixtures**: Cover CDN-style passkeys, IPv6 UDP, complex tracker tiers, nested paths, and large torrents
-- **Measured releases**: Strict Lite size budgets and per-runtime startup, memory, and size metrics
+- **Linux stability**: Loading a torrent no longer causes recursive tracker-selector refreshes
+- **Tracker selection**: Multi-tracker candidates can be selected without reentering the display update
+- **Regression coverage**: Avalonia headless tests now exercise torrent loading and tracker switching
+- **Maintenance**: Avalonia 12.1.3 and NUnit 5.0.0
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.
 The current compatibility review is recorded in the [September 2026 client profile audit](docs/client-profile-audit-2026-09-21.md).

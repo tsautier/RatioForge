@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
 using Avalonia.Styling;
 using NUnit.Framework;
+using System.Reflection;
 
 public sealed class DesktopWindowTests
 {
@@ -109,6 +110,31 @@ public sealed class DesktopWindowTests
             Assert.That(window.FindControl<TextBox>("HistoryRequestBox"), Is.Not.Null);
             Assert.That(window.FindControl<TextBox>("HistoryDiagnosticBox"), Is.Not.Null);
             Assert.That(window.FindControl<Button>("CopyAnnounceButton")?.IsEnabled, Is.False);
+        });
+    }
+
+    [AvaloniaTest]
+    public void TrackerSelectionShouldNotReenterDisplayRefresh()
+    {
+        const string primary = "https://primary.example/announce";
+        const string secondary = "https://secondary.example/announce";
+        var torrent = new TorrentDocument(
+            "fixture.torrent", "Fixture", primary, new string('a', 40), 1024, 1,
+            [[primary, secondary]]);
+        var window = new MainWindow();
+        typeof(MainWindow).GetField("torrent", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(window, torrent);
+        typeof(MainWindow).GetMethod("UpdateTrackerDisplay", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(window, null);
+        ComboBox trackerCombo = window.FindControl<ComboBox>("TrackerCombo")!;
+
+        trackerCombo.SelectedIndex = 1;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(trackerCombo.SelectedIndex, Is.EqualTo(1));
+            Assert.That(window.FindControl<TextBlock>("TrackerText")?.Text,
+                Is.EqualTo($"{secondary} (2/2)"));
         });
     }
 
