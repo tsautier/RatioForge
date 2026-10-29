@@ -42,6 +42,7 @@ public partial class MainWindow : Window
     private bool closingInProgress;
     private bool allowClose;
     private int sessionGeneration;
+    private Task? endingSession;
     private string availableReleaseUrl = LatestReleaseUrl;
     private ReleaseUpdateResult? availableUpdate;
     private int activeTrackerIndex;
@@ -78,7 +79,7 @@ public partial class MainWindow : Window
             AddActivity(ClientProfileCatalog.LoadWarning, force: true);
             AddDebug(ClientProfileCatalog.LoadWarning);
         }
-        Opened += async (_, _) => await CheckForUpdatesAsync(manual: false);
+        Opened += (_, _) => RunGuarded("check for updates", () => CheckForUpdatesAsync(manual: false));
         Closing += MainWindow_Closing;
         Closed += (_, _) =>
         {
@@ -90,10 +91,13 @@ public partial class MainWindow : Window
 
     private void CreateIssue_Click(object? sender, RoutedEventArgs e) => OpenWebPage(NewIssueUrl);
 
-    private async void CheckForUpdates_Click(object? sender, RoutedEventArgs e) =>
-        await CheckForUpdatesAsync(manual: true);
+    private void CheckForUpdates_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("check for updates", () => CheckForUpdatesAsync(manual: true));
 
-    private async void NetworkDiagnostics_Click(object? sender, RoutedEventArgs e)
+    private void NetworkDiagnostics_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("open network diagnostics", ShowNetworkDiagnosticsAsync);
+
+    private async Task ShowNetworkDiagnosticsAsync()
     {
         var window = new NetworkDiagnosticsWindow(
             torrent?.Trackers ?? [],
@@ -104,7 +108,10 @@ public partial class MainWindow : Window
 
     private void LatestRelease_Click(object? sender, RoutedEventArgs e) => OpenWebPage(availableReleaseUrl);
 
-    private async void Settings_Click(object? sender, RoutedEventArgs e)
+    private void Settings_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("open settings", ShowSettingsAsync);
+
+    private async Task ShowSettingsAsync()
     {
         var window = new SettingsWindow(settings);
         bool saved = await window.ShowDialog<bool>(this);
@@ -155,7 +162,10 @@ public partial class MainWindow : Window
         IntervalBox.Value = settings.IntervalSeconds;
     }
 
-    private async void OpenTorrent_Click(object? sender, RoutedEventArgs e)
+    private void OpenTorrent_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("open a torrent", OpenTorrentAsync);
+
+    private async Task OpenTorrentAsync()
     {
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
@@ -217,7 +227,10 @@ public partial class MainWindow : Window
         AddDebug($"Client identity generated: client={profile.Name}; key={clientIdentity.Key}; peer_id={clientIdentity.PeerId}");
     }
 
-    private async void Start_Click(object? sender, RoutedEventArgs e)
+    private void Start_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("start the session", StartSessionAsync);
+
+    private async Task StartSessionAsync()
     {
         if (torrent is null || ClientCombo.SelectedItem is not ClientProfile || clientIdentity is null)
         {
@@ -262,7 +275,10 @@ public partial class MainWindow : Window
         await HandleTrackerRejectionAsync(result);
     }
 
-    private async void ManualUpdate_Click(object? sender, RoutedEventArgs e)
+    private void ManualUpdate_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("send a manual update", SendManualUpdateAsync);
+
+    private async Task SendManualUpdateAsync()
     {
         if (sessionCancellation is null || announcing)
         {
@@ -291,7 +307,10 @@ public partial class MainWindow : Window
         AddDebug($"Tracker selected manually: candidate={activeTrackerIndex + 1}/{torrent.Trackers.Count}; tracker={torrent.Trackers[activeTrackerIndex]}");
     }
 
-    private async void RetryTracker_Click(object? sender, RoutedEventArgs e)
+    private void RetryTracker_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("retry the tracker", RetryTrackerAsync);
+
+    private async Task RetryTrackerAsync()
     {
         if (sessionCancellation is null || announcing)
         {
@@ -304,7 +323,10 @@ public partial class MainWindow : Window
         await HandleTrackerRejectionAsync(result);
     }
 
-    private async void ResetSession_Click(object? sender, RoutedEventArgs e)
+    private void ResetSession_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("reset the session", ResetSessionAsync);
+
+    private async Task ResetSessionAsync()
     {
         if (sessionCancellation is not null)
         {
@@ -323,10 +345,8 @@ public partial class MainWindow : Window
         AddDebug("Session reset.");
     }
 
-    private async void Stop_Click(object? sender, RoutedEventArgs e)
-    {
-        await EndSessionAsync("Stopped", "Session stopped.");
-    }
+    private void Stop_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("stop the session", () => EndSessionAsync("Stopped", "Session stopped."));
 
     private void StopActiveSession()
     {
@@ -359,27 +379,46 @@ public partial class MainWindow : Window
         IntervalBox.IsEnabled = !active;
     }
 
-    private async Task EndSessionAsync(string status, string activityMessage)
+    private Task EndSessionAsync(string status, string activityMessage)
     {
-        CancellationTokenSource? cancellation = sessionCancellation;
-        if (cancellation is null)
+        // Concurrent stop requests (button, automatic stop, tracker rejection, window close) share one shutdown.
+        if (endingSession is { IsCompleted: false })
         {
-            return;
+            return endingSession;
         }
 
+        if (sessionCancellation is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        endingSession = EndSessionCoreAsync(sessionCancellation, status, activityMessage);
+        return endingSession;
+    }
+
+    private async Task EndSessionCoreAsync(CancellationTokenSource cancellation, string status, string activityMessage)
+    {
         timer.Stop();
         cancellation.Cancel();
-        bool previousAnnounceFinished = await WaitForActiveAnnounceAsync();
-        if (!previousAnnounceFinished)
+        try
         {
-            sessionGeneration++;
-            announcing = false;
+            bool previousAnnounceFinished = await WaitForActiveAnnounceAsync();
+            if (!previousAnnounceFinished)
+            {
+                sessionGeneration++;
+                announcing = false;
+            }
+
+            using var stoppedTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            UpdateTransferCounters(DateTimeOffset.UtcNow);
+            await SendAnnounceAsync("stopped", stoppedTimeout.Token);
+        }
+        finally
+        {
+            // Always release the session so the controls never stay locked after a failure.
+            StopActiveSession();
         }
 
-        using var stoppedTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        UpdateTransferCounters(DateTimeOffset.UtcNow);
-        await SendAnnounceAsync("stopped", stoppedTimeout.Token);
-        StopActiveSession();
         StatusText.Text = status;
         AddActivity(activityMessage);
     }
@@ -413,7 +452,10 @@ public partial class MainWindow : Window
         nextAnnounce = default;
     }
 
-    private async void Timer_Tick(object? sender, EventArgs e)
+    private void Timer_Tick(object? sender, EventArgs e) =>
+        RunGuarded("update the session", TickSessionAsync);
+
+    private async Task TickSessionAsync()
     {
         if (sessionCancellation is null)
         {
@@ -421,13 +463,15 @@ public partial class MainWindow : Window
             return;
         }
 
+        int tickGeneration = sessionGeneration;
         DateTimeOffset now = DateTimeOffset.UtcNow;
         bool completed = UpdateTransferCounters(now);
         if (completed && !announcing && sessionCancellation is not null)
         {
             completionAnnounced = true;
             TrackerAnnounceResult? completionResult = await SendAnnounceAsync("completed", sessionCancellation.Token);
-            if (await HandleTrackerRejectionAsync(completionResult))
+            if (await HandleTrackerRejectionAsync(completionResult) ||
+                tickGeneration != sessionGeneration || sessionCancellation is null)
             {
                 return;
             }
@@ -670,7 +714,7 @@ public partial class MainWindow : Window
         _ => "never",
     };
 
-    private async void MainWindow_Closing(object? sender, WindowClosingEventArgs e)
+    private void MainWindow_Closing(object? sender, WindowClosingEventArgs e)
     {
         if (allowClose || sessionCancellation is null)
         {
@@ -684,9 +728,42 @@ public partial class MainWindow : Window
         }
 
         closingInProgress = true;
-        await EndSessionAsync("Closing", "Session stopped before application exit.");
-        allowClose = true;
-        Close();
+        RunGuarded("stop the session before closing", CloseAfterSessionAsync);
+    }
+
+    private async Task CloseAfterSessionAsync()
+    {
+        try
+        {
+            await EndSessionAsync("Closing", "Session stopped before application exit.");
+        }
+        finally
+        {
+            // A failed stopped announce must never prevent the application from exiting.
+            allowClose = true;
+            Close();
+        }
+    }
+
+    private async void RunGuarded(string operation, Func<Task> action) => await GuardAsync(operation, action);
+
+    private async Task GuardAsync(string operation, Func<Task> action)
+    {
+        try
+        {
+            await action();
+        }
+        catch (Exception exception)
+        {
+            ReportUnexpectedError(operation, exception);
+        }
+    }
+
+    private void ReportUnexpectedError(string operation, Exception exception)
+    {
+        StatusText.Text = "Unexpected error";
+        AddActivity($"ERROR Could not {operation}: {exception.Message}", force: true);
+        AddDebug($"Unexpected UI failure: operation={operation}; type={exception.GetType().FullName}; details={exception}");
     }
 
     private void AddActivity(string message, bool force = false)
@@ -750,7 +827,10 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void CopyDiagnostics_Click(object? sender, RoutedEventArgs e)
+    private void CopyDiagnostics_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("copy diagnostics", CopyDiagnosticsAsync);
+
+    private async Task CopyDiagnosticsAsync()
     {
         var report = new StringBuilder()
             .AppendLine("RatioForge diagnostics")
@@ -1061,7 +1141,10 @@ public partial class MainWindow : Window
         CopyAnnounceButton.IsEnabled = !string.IsNullOrWhiteSpace(selected?.Request);
     }
 
-    private async void CopyAnnounce_Click(object? sender, RoutedEventArgs e)
+    private void CopyAnnounce_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("copy the announce", CopyAnnounceAsync);
+
+    private async Task CopyAnnounceAsync()
     {
         if (AnnounceHistoryList.SelectedItem is not AnnounceHistoryRow selected ||
             string.IsNullOrWhiteSpace(selected.Request))
@@ -1104,11 +1187,13 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void ExportHistoryCsv_Click(object? sender, RoutedEventArgs e) =>
-        await ExportHistoryAsync("CSV", "csv", AnnounceHistoryExporter.ToCsv(filteredAnnounceHistory));
+    private void ExportHistoryCsv_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("export the announce history", () =>
+            ExportHistoryAsync("CSV", "csv", AnnounceHistoryExporter.ToCsv(filteredAnnounceHistory)));
 
-    private async void ExportHistoryJson_Click(object? sender, RoutedEventArgs e) =>
-        await ExportHistoryAsync("JSON", "json", AnnounceHistoryExporter.ToJson(filteredAnnounceHistory));
+    private void ExportHistoryJson_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("export the announce history", () =>
+            ExportHistoryAsync("JSON", "json", AnnounceHistoryExporter.ToJson(filteredAnnounceHistory)));
 
     private async Task ExportHistoryAsync(string label, string extension, string content)
     {

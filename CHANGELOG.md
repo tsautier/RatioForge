@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Core sources:** The torrent parser, client factory, tracker URL builder, and version checker now live directly in `RatioForge.Core` instead of being linked from the legacy project.
 - **Desktop icon:** The application icon is now stored in `RatioForge.Desktop/Assets`.
 
+### Fixed
+- **UI resilience:** Every asynchronous desktop handler, including the session timer, now reports unexpected failures in the activity log and status bar instead of terminating the application. Reported messages are redacted.
+- **Session shutdown:** Concurrent stop requests (Stop, automatic stop, tracker rejection, window close) now share a single shutdown and send one `stopped` announce. A failed shutdown always releases the session controls.
+- **Application exit:** Closing the window during a session always exits, even if the final `stopped` announce fails.
+- **Timer after stop:** A session tick that resumes after the session ended no longer overwrites the countdown.
+- **Settings import/export:** File-picker and unexpected errors are shown as validation messages instead of escaping the handler.
+
 ## [1.2.3] - 2026-10-11
 
 ### Changed

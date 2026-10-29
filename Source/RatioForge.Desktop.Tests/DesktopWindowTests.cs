@@ -3,6 +3,7 @@ namespace RatioForge.Desktop.Tests;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using NUnit.Framework;
 using System.Reflection;
 
@@ -138,6 +139,68 @@ public sealed class DesktopWindowTests
         });
     }
 
+    [AvaloniaTest]
+    public void UnexpectedHandlerFailureShouldBeReportedWithoutCrashing()
+    {
+        var window = new MainWindow();
+        Task guarded = InvokePrivate<Task>(window, "GuardAsync", "update the session", (Func<Task>)(() =>
+            throw new InvalidOperationException("Tracker https://tracker.example/announce?passkey=secret123 exploded")));
+        PumpUntil(() => guarded.IsCompleted);
+        IEnumerable<string> activity = window.FindControl<ListBox>("ActivityList")!.ItemsSource!.Cast<string>();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(guarded.IsCompletedSuccessfully, Is.True);
+            Assert.That(window.FindControl<TextBlock>("StatusText")?.Text, Is.EqualTo("Unexpected error"));
+            Assert.That(activity.Any(entry => entry.Contains("ERROR Could not update the session", StringComparison.Ordinal)), Is.True);
+            Assert.That(activity.Any(entry => entry.Contains("secret123", StringComparison.Ordinal)), Is.False);
+        });
+    }
+
+    [AvaloniaTest]
+    public void ConcurrentStopRequestsShouldShareOneShutdownAndReleaseControls()
+    {
+        var window = new MainWindow();
+        SetPrivate(window, "sessionCancellation", new CancellationTokenSource());
+        SetPrivate(window, "announcing", true);
+
+        Task first = InvokePrivate<Task>(window, "EndSessionAsync", "Stopped", "Session stopped.");
+        Task second = InvokePrivate<Task>(window, "EndSessionAsync", "Stopped automatically", "Session stopped automatically.");
+        SetPrivate(window, "announcing", false);
+        PumpUntil(() => first.IsCompleted);
+        IEnumerable<string> activity = window.FindControl<ListBox>("ActivityList")!.ItemsSource!.Cast<string>();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(second, Is.SameAs(first));
+            Assert.That(first.IsCompletedSuccessfully, Is.True);
+            Assert.That(GetPrivate(window, "sessionCancellation"), Is.Null);
+            Assert.That(window.FindControl<Button>("StartButton")?.IsEnabled, Is.True);
+            Assert.That(window.FindControl<Button>("StopButton")?.IsEnabled, Is.False);
+            Assert.That(activity.Count(entry => entry.EndsWith("Session stopped.", StringComparison.Ordinal)), Is.EqualTo(1));
+            Assert.That(activity.Any(entry => entry.Contains("Session stopped automatically", StringComparison.Ordinal)), Is.False);
+        });
+    }
+
+    [AvaloniaTest]
+    public void ClosingDuringActiveSessionShouldStopSessionThenClose()
+    {
+        var window = new MainWindow();
+        bool closed = false;
+        window.Closed += (_, _) => closed = true;
+        window.Show();
+        SetPrivate(window, "sessionCancellation", new CancellationTokenSource());
+
+        window.Close();
+        PumpUntil(() => closed);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(closed, Is.True);
+            Assert.That(GetPrivate(window, "sessionCancellation"), Is.Null);
+        });
+    }
+
     [Test]
     public void HistoryExportsShouldRedactSecretsAndRemainMachineReadable()
     {
@@ -180,5 +243,24 @@ public sealed class DesktopWindowTests
             Assert.That(update.FindControl<Button>("DownloadButton")?.IsVisible, Is.True);
             Assert.That(update.FindControl<TextBox>("ReleaseNotesText")?.Text, Is.EqualTo("Release notes"));
         });
+    }
+
+    private static T InvokePrivate<T>(object target, string name, params object[] arguments) =>
+        (T)target.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(target, arguments)!;
+
+    private static object? GetPrivate(object target, string name) =>
+        target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(target);
+
+    private static void SetPrivate(object target, string name, object? value) =>
+        target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(target, value);
+
+    private static void PumpUntil(Func<bool> condition)
+    {
+        DateTime deadline = DateTime.UtcNow.AddSeconds(5);
+        while (!condition() && DateTime.UtcNow < deadline)
+        {
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(10);
+        }
     }
 }

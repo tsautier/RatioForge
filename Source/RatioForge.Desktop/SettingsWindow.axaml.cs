@@ -211,7 +211,10 @@ public partial class SettingsWindow : Window
         HideValidation();
     }
 
-    private async void ImportSessionProfiles_Click(object? sender, RoutedEventArgs e)
+    private void ImportSessionProfiles_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("import session profiles", ImportSessionProfilesAsync);
+
+    private async Task ImportSessionProfilesAsync()
     {
         IStorageFile? file = await PickJsonFileAsync("Import session profiles");
         if (file is null)
@@ -238,7 +241,10 @@ public partial class SettingsWindow : Window
         }
     }
 
-    private async void ExportSessionProfiles_Click(object? sender, RoutedEventArgs e)
+    private void ExportSessionProfiles_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("export session profiles", ExportSessionProfilesAsync);
+
+    private async Task ExportSessionProfilesAsync()
     {
         IStorageFile? file = await SaveJsonFileAsync("Export session profiles", "ratioforge-session-profiles.json");
         if (file is null)
@@ -257,7 +263,10 @@ public partial class SettingsWindow : Window
         }
     }
 
-    private async void ImportClientProfiles_Click(object? sender, RoutedEventArgs e)
+    private void ImportClientProfiles_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("import client profiles", ImportClientProfilesAsync);
+
+    private async Task ImportClientProfilesAsync()
     {
         IStorageFile? file = await PickJsonFileAsync("Import client profiles");
         if (file is null)
@@ -281,7 +290,10 @@ public partial class SettingsWindow : Window
         }
     }
 
-    private async void ExportClientProfiles_Click(object? sender, RoutedEventArgs e)
+    private void ExportClientProfiles_Click(object? sender, RoutedEventArgs e) =>
+        RunGuarded("export client profiles", ExportClientProfilesAsync);
+
+    private async Task ExportClientProfilesAsync()
     {
         IStorageFile? file = await SaveJsonFileAsync("Export client profiles", "ratioforge-client-profiles.json");
         if (file is null)
@@ -297,6 +309,18 @@ public partial class SettingsWindow : Window
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             ShowValidation("Could not export client profiles: " + exception.Message);
+        }
+    }
+
+    private async void RunGuarded(string operation, Func<Task> action)
+    {
+        try
+        {
+            await action();
+        }
+        catch (Exception exception)
+        {
+            ShowValidation($"Could not {operation}: {SensitiveDataRedactor.Redact(exception.Message)}");
         }
     }
 
