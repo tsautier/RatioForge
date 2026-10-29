@@ -4,7 +4,7 @@ Use this checklist before creating and pushing a release tag.
 
 ## Versioning
 
-- [ ] Update `version.txt`, `Source/Directory.Build.props`, version tests, `CHANGELOG.md`, `RELEASE_NOTES.md`, and README highlights.
+- [ ] Update `version.txt`, `Source/Directory.Build.props`, `VersionChecker.ReleaseDate`, version tests, `CHANGELOG.md`, `RELEASE_NOTES.md`, and README highlights.
 - [ ] Keep the archived `Website/` unchanged; see `docs/decisions/0001-archive-legacy-website.md`.
 
 ## Verification

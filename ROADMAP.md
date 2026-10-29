@@ -44,6 +44,7 @@ Additional 1.2.x maintenance:
 - Completed in 1.2.2: anonymized real-world-shaped torrents and complex `announce-list` regression fixtures.
 - Completed in 1.2.2: stricter Lite size budgets plus release startup, peak-memory, size, and reduction metrics.
 - Completed in 1.2.3: Linux tracker-selector reentrancy crash fixed with Avalonia regression coverage ([issue #16](https://github.com/tsautier/RatioForge/issues/16)).
+- Completed in 1.2.4: legacy WinForms project removed; asynchronous UI handlers report failures instead of crashing, and session shutdown is idempotent.
 - Completed in 1.2.0: structured announce history covers tracker communication and readable diagnostics cover common network and proxy failures.
 - Continue improving error handling as new tracker and malformed torrent cases are reported.
 - Completed early: sample torrent fixtures now cover parser and tracker behavior; continue extending them when regressions are found.

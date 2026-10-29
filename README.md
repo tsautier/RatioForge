@@ -103,12 +103,11 @@ RatioForge loads its built-in emulations from `clients.json`. Settings can expor
 
 Supported random kinds are `Alphanumeric`, `LowerAlphanumeric`, `Numeric`, `Hex`, `Random`, `UrlSafe`, `TransmissionChecksum`, and `HexRange`. A malformed custom file is ignored, reported in Activity, and never replaces the built-in catalog.
 
-## What's New in 1.2.3 (RatioForge)
+## What's New in 1.2.4 (RatioForge)
 
-- **Linux stability**: Loading a torrent no longer causes recursive tracker-selector refreshes
-- **Tracker selection**: Multi-tracker candidates can be selected without reentering the display update
-- **Regression coverage**: Avalonia headless tests now exercise torrent loading and tracker switching
-- **Maintenance**: Avalonia 12.1.3 and NUnit 5.0.0
+- **UI resilience**: Unexpected errors in desktop actions and the session timer are reported in Activity instead of closing the application
+- **Session shutdown**: Simultaneous stop requests share one shutdown and send a single `stopped` announce; closing during a session always exits
+- **Cleanup**: The unmaintained legacy WinForms project was removed; its shared engine code now lives in `RatioForge.Core`
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.
 The current compatibility review is recorded in the [September 2026 client profile audit](docs/client-profile-audit-2026-09-21.md).
