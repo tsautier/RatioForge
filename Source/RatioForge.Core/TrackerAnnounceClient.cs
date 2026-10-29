@@ -115,7 +115,8 @@ public sealed class TrackerAnnounceClient : IDisposable
                     return new TrackerFailoverResult(result, trackerIndex);
                 }
             }
-            catch (Exception exception) when (exception is not OperationCanceledException)
+            // HttpClient reports its own timeout as a cancellation; only the caller's token stops the failover.
+            catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
                 finalException = exception;
                 onAttempted?.Invoke(new TrackerAttempt(offset + 1, trackerIndex, trackers.Count, options, null, exception));

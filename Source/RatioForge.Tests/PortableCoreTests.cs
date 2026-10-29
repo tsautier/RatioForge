@@ -212,6 +212,29 @@ public class PortableCoreTests
     }
 
     [Test]
+    public void DebugLogShouldRotateOnceItReachesTheSizeLimit()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"ratioforge-debug-{Guid.NewGuid():N}.log");
+        try
+        {
+            DebugLogStore.Append("first entry", path, maximumBytes: 64);
+            DebugLogStore.Append("second entry fills the file beyond the tiny limit", path, maximumBytes: 64);
+            DebugLogStore.Append("third entry", path, maximumBytes: 64);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(File.ReadAllText(path), Does.Contain("third entry").And.Not.Contain("first entry"));
+                Assert.That(File.ReadAllText(path + ".1"), Does.Contain("first entry").And.Contain("second entry"));
+            });
+        }
+        finally
+        {
+            File.Delete(path);
+            File.Delete(path + ".1");
+        }
+    }
+
+    [Test]
     public void DebugLogShouldAppendTimestampedEntry()
     {
         string path = Path.Combine(Path.GetTempPath(), $"ratioforge-debug-{Guid.NewGuid():N}.log");

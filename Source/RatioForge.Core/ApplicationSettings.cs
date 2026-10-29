@@ -123,6 +123,9 @@ public sealed class ApplicationSettings
 /// <summary>Writes opt-in diagnostic entries to the user's application-data directory.</summary>
 public static class DebugLogStore
 {
+    /// <summary>Size above which the log is moved to <c>debug.log.1</c>, replacing any previous archive.</summary>
+    public const long MaximumBytes = 5 * 1024 * 1024;
+
     private static readonly object SyncRoot = new();
 
     public static string DefaultPath => Path.Combine(
@@ -130,7 +133,7 @@ public static class DebugLogStore
         "RatioForge",
         "debug.log");
 
-    public static void Append(string message, string? path = null)
+    public static void Append(string message, string? path = null, long maximumBytes = MaximumBytes)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
         string logPath = path ?? DefaultPath;
@@ -141,6 +144,12 @@ public static class DebugLogStore
             if (!string.IsNullOrEmpty(directory))
             {
                 Directory.CreateDirectory(directory);
+            }
+
+            var current = new FileInfo(logPath);
+            if (current.Exists && current.Length >= maximumBytes)
+            {
+                File.Move(logPath, logPath + ".1", overwrite: true);
             }
 
             File.AppendAllText(

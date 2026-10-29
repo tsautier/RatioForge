@@ -16,6 +16,16 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Verify tag is on master
+        if: github.ref_type == 'tag'
+        run: |
+          git fetch --no-tags origin master
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "::error::Tag $GITHUB_REF_NAME ($GITHUB_SHA) is not on origin/master. Push master before pushing the tag."
+            exit 1
+          fi
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:

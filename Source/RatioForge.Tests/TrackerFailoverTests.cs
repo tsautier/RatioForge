@@ -23,9 +23,10 @@ public sealed class TrackerFailoverTests
     [Test]
     public async Task FailoverShouldSkipUnreachableAndRejectingTrackers()
     {
+        using var dropping = new FakeHttpTracker(TrackerBehavior.DropConnection);
         using var rejecting = new FakeHttpTracker(Rejecting);
         using var accepting = new FakeHttpTracker(Accepting);
-        string[] trackers = [ClosedPortTracker(), rejecting.AnnounceUrl, accepting.AnnounceUrl];
+        string[] trackers = [dropping.AnnounceUrl, rejecting.AnnounceUrl, accepting.AnnounceUrl];
         var attempts = new List<TrackerAttempt>();
         var sending = new List<int>();
 
@@ -71,7 +72,8 @@ public sealed class TrackerFailoverTests
     public async Task RejectionShouldBeReportedWhenLaterCandidatesAreUnreachable()
     {
         using var rejecting = new FakeHttpTracker(Rejecting);
-        string[] trackers = [rejecting.AnnounceUrl, ClosedPortTracker()];
+        using var dropping = new FakeHttpTracker(TrackerBehavior.DropConnection);
+        string[] trackers = [rejecting.AnnounceUrl, dropping.AnnounceUrl];
 
         using var client = new TrackerAnnounceClient();
         TrackerFailoverResult failover = await client.AnnounceWithFailoverAsync(trackers, 0, Options);
@@ -87,12 +89,51 @@ public sealed class TrackerFailoverTests
     [Test]
     public void UnreachableTrackersShouldSurfaceTheLastNetworkFailure()
     {
-        string[] trackers = [ClosedPortTracker(), ClosedPortTracker()];
+        using var dropping = new FakeHttpTracker(TrackerBehavior.DropConnection);
+        string[] trackers = [ClosedPortTracker(), dropping.AnnounceUrl];
         using var client = new TrackerAnnounceClient();
 
         Assert.That(
             async () => await client.AnnounceWithFailoverAsync(trackers, 0, Options),
             Throws.InstanceOf<HttpRequestException>());
+    }
+
+    [Test]
+    public async Task TrackerTimeoutShouldFailOverInsteadOfCancelling()
+    {
+        using var silent = new FakeHttpTracker(TrackerBehavior.NeverRespond);
+        using var accepting = new FakeHttpTracker(Accepting);
+        string[] trackers = [silent.AnnounceUrl, accepting.AnnounceUrl];
+        var attempts = new List<TrackerAttempt>();
+        using var httpClient = new HttpClient { Timeout = TimeSpan.FromMilliseconds(300) };
+
+        using var client = new TrackerAnnounceClient(httpClient);
+        TrackerFailoverResult failover = await client.AnnounceWithFailoverAsync(
+            trackers, 0, Options, onAttempted: attempts.Add);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(failover.SuccessfulIndex, Is.EqualTo(1));
+            Assert.That(attempts[0].Error, Is.InstanceOf<TaskCanceledException>());
+        });
+    }
+
+    [Test]
+    public void CallerCancellationShouldStopFailover()
+    {
+        using var silent = new FakeHttpTracker(TrackerBehavior.NeverRespond);
+        using var accepting = new FakeHttpTracker(Accepting);
+        string[] trackers = [silent.AnnounceUrl, accepting.AnnounceUrl];
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
+        using var client = new TrackerAnnounceClient();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                async () => await client.AnnounceWithFailoverAsync(trackers, 0, Options, cancellationToken: cancellation.Token),
+                Throws.InstanceOf<OperationCanceledException>());
+            Assert.That(accepting.Requests, Is.Empty);
+        });
     }
 
     private static TrackerAnnounceOptions Options(string trackerUrl) => new(
@@ -114,6 +155,13 @@ public sealed class TrackerFailoverTests
         return $"http://127.0.0.1:{port}/announce";
     }
 
+    private enum TrackerBehavior
+    {
+        Respond,
+        DropConnection,
+        NeverRespond,
+    }
+
     /// <summary>Minimal HTTP/1.1 tracker that answers every announce with the same bencoded body.</summary>
     private sealed class FakeHttpTracker : IDisposable
     {
@@ -122,8 +170,16 @@ public sealed class TrackerFailoverTests
         private readonly ConcurrentQueue<string> requests = new();
         private readonly Task serving;
 
+        private readonly TrackerBehavior behavior;
+
         public FakeHttpTracker(string body)
+            : this(TrackerBehavior.Respond, body)
         {
+        }
+
+        public FakeHttpTracker(TrackerBehavior behavior, string body = "")
+        {
+            this.behavior = behavior;
             listener.Start();
             AnnounceUrl = $"http://127.0.0.1:{((IPEndPoint)listener.LocalEndpoint).Port}/announce";
             serving = ServeAsync(Encoding.ASCII.GetBytes(body));
@@ -163,6 +219,16 @@ public sealed class TrackerFailoverTests
                 }
 
                 requests.Enqueue(requestLine);
+                if (behavior == TrackerBehavior.DropConnection)
+                {
+                    continue;
+                }
+
+                if (behavior == TrackerBehavior.NeverRespond)
+                {
+                    await Task.Delay(Timeout.Infinite, stopping.Token);
+                }
+
                 byte[] header = Encoding.ASCII.GetBytes(
                     $"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {body.Length}\r\nConnection: close\r\n\r\n");
                 await stream.WriteAsync(header, stopping.Token);

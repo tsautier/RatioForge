@@ -12,13 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Session engine:** Transfer accounting (counters, completion, remaining bytes, ratio, and no-leecher pause) and `announce-list` failover moved from the desktop window into `RatioForge.Core`, where they are unit-tested.
 - **Nullable analysis:** Enabled for every project, including the former legacy parser sources and the tests; nullable warnings now fail the build.
 - **Coverage:** CI collects code coverage, publishes a per-assembly summary, and uploads the Cobertura reports.
+- **Debug log:** `debug.log` rotates to `debug.log.1` once it reaches 5 MiB instead of growing without limit.
+- **Release safety:** The release workflow fails when the tagged commit is not on `master`.
+
+### Removed
+- **Unused legacy code:** Removed the unused `VersionChecker` (superseded by the release update checker) and the obsolete `Rules.ruleset`. A test now checks the assembly version against `version.txt`.
 
 ### Fixed
+- **Tracker timeouts:** A tracker that times out now fails over to the next `announce-list` candidate and schedules a retry, instead of being reported as a cancelled announce.
 - **Malformed torrents:** A non-string `announce` or `name` value is rejected with a readable error instead of producing an unusable session.
 - **Checksum manifests:** Windows `.sha256` files use LF line endings so `sha256sum -c` works on every platform; the release workflow rejects CRLF manifests.
 
 ### Tests
-- Added end-to-end failover tests against local HTTP trackers covering unreachable, rejecting, and accepting candidates.
+- Added end-to-end failover tests against local HTTP trackers covering unreachable, rejecting, silent, and accepting candidates, plus caller cancellation.
 
 ## [1.2.4] - 2026-10-29
 

@@ -576,8 +576,9 @@ public partial class MainWindow : Window
             AddDebug($"Announce response: success={result.IsSuccess}; interval={interval}; message={result.Message}");
             return result;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            // A tracker timeout is also an OperationCanceledException; it falls through to the retry path below.
             if (announceGeneration == sessionGeneration)
             {
                 StatusText.Text = "Cancelled";
