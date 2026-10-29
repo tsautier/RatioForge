@@ -1,12 +1,13 @@
-# RatioForge 1.2.4
+# RatioForge 1.2.5
 
-RatioForge 1.2.4 is a stability and maintenance release for the desktop application.
+RatioForge 1.2.5 improves tracker reliability and hardens the session engine.
 
-- Report unexpected failures in desktop actions and the session timer in Activity and the status bar instead of closing the application
-- Share a single shutdown between simultaneous stop requests (Stop, automatic stop, tracker rejection, window close) and send one `stopped` announce
-- Always release session controls and allow the window to close, even if the final `stopped` announce fails
-- Show file-picker and unexpected import/export errors in Settings as validation messages
-- Remove the unmaintained legacy WinForms project; the shared parser and announce code now lives in `RatioForge.Core`
+- Fail over to the next `announce-list` candidate when a tracker times out, and schedule a retry instead of reporting the announce as cancelled
+- Reject torrents whose `announce` or `name` value is not a string with a readable error
+- Rotate `debug.log` to `debug.log.1` once it reaches 5 MiB
+- Write Windows `.sha256` manifests with LF line endings so `sha256sum -c` works on every platform
+- Move session accounting and tracker failover into `RatioForge.Core`, covered by end-to-end tests against local HTTP trackers
+- Update Avalonia desktop packages to 12.1.4
 
 HTTP and SOCKS proxies apply to HTTP(S) trackers. UDP trackers use direct UDP because those proxy protocols cannot relay BEP 15 datagrams through the current .NET transport.
 
