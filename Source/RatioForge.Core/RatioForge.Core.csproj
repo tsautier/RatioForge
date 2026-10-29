@@ -12,12 +12,5 @@
 
   <ItemGroup>
     <EmbeddedResource Include="clients.json" LogicalName="RatioForge.clients.json" />
-    <Compile Include="..\RatioForge\BitTorrent\**\*.cs" Link="BitTorrent\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\RatioForge\RandomStringGenerator.cs" Link="Legacy\RandomStringGenerator.cs" />
-    <Compile Include="..\RatioForge\TorrentClient.cs" Link="Legacy\TorrentClient.cs" />
-    <Compile Include="..\RatioForge\TorrentClientFactory.cs" Link="Legacy\TorrentClientFactory.cs" />
-    <Compile Include="..\RatioForge\TorrentInfo.cs" Link="Legacy\TorrentInfo.cs" />
-    <Compile Include="..\RatioForge\TrackerUrlBuilder.cs" Link="Legacy\TrackerUrlBuilder.cs" />
-    <Compile Include="..\RatioForge\VersionChecker.cs" Link="Legacy\VersionChecker.cs" />
   </ItemGroup>
 </Project>

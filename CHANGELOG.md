@@ -5,6 +5,15 @@ All notable changes to RatioForge will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+- **Legacy WinForms project:** Deleted the unmaintained `Source/RatioForge` Windows Forms application, which was no longer part of the solution or any release.
+
+### Changed
+- **Core sources:** The torrent parser, client factory, tracker URL builder, and version checker now live directly in `RatioForge.Core` instead of being linked from the legacy project.
+- **Desktop icon:** The application icon is now stored in `RatioForge.Desktop/Assets`.
+
 ## [1.2.3] - 2026-10-11
 
 ### Changed
