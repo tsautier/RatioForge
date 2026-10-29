@@ -2,6 +2,7 @@ namespace BitTorrent
 {
     using System;
     using System.Collections.ObjectModel;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Security.Cryptography;
 
@@ -10,15 +11,15 @@ namespace BitTorrent
         // if the torrent is multiple files, an array of them
         private Collection<TorrentFile> torrentFiles;
 
-        private ValueDictionary data; // contains all the dictionary entries for the data
+        private ValueDictionary data = new(); // contains all the dictionary entries for the data
 
-        private string localTorrentFile; // path of the local torrent file
+        private string localTorrentFile = string.Empty; // path of the local torrent file
 
         private Int64 pieceLength; // length of each piece in bytes
 
-        private Piece[] pieceArray; // an array of the torrent pieces
+        private Piece[] pieceArray = []; // an array of the torrent pieces
 
-        private byte[] infohash; // a hash of the pieces
+        private byte[] infohash = []; // a hash of the pieces
 
         private int pieces; // number of pieces the file is made up of
 
@@ -86,7 +87,8 @@ namespace BitTorrent
             }
         }
 
-        internal string Name
+        [DisallowNull]
+        internal string? Name
         {
             get
             {
@@ -102,7 +104,8 @@ namespace BitTorrent
             }
         }
 
-        internal string Comment
+        [DisallowNull]
+        internal string? Comment
         {
             get
             {
@@ -115,7 +118,8 @@ namespace BitTorrent
             }
         }
 
-        internal string Announce
+        [DisallowNull]
+        internal string? Announce
         {
             get
             {
@@ -128,7 +132,8 @@ namespace BitTorrent
             }
         }
 
-        internal string CreatedBy
+        [DisallowNull]
+        internal string? CreatedBy
         {
             get
             {
@@ -143,14 +148,13 @@ namespace BitTorrent
 
         internal bool OpenTorrent(string localFilename)
         {
-            data = null; // clear any old data
             torrentFiles = new Collection<TorrentFile>();
             _totalLength = 0;
             bool hasOpened = false;
             localTorrentFile = localFilename;
             data = new ValueDictionary();
-            FileStream fs = null;
-            BinaryReader r = null;
+            FileStream? fs = null;
+            BinaryReader? r = null;
 
             try
             {
@@ -184,7 +188,6 @@ namespace BitTorrent
         {
             int targetPieces = hashdata.Length / 20;
             pieces = 0; // reset! careful
-            pieceArray = null;
             pieceArray = new Piece[targetPieces];
             while (pieces < targetPieces)
             {
@@ -245,7 +248,6 @@ namespace BitTorrent
         {
             ValueDictionary info = (ValueDictionary)data["info"];
             ValueList files = (ValueList)info["files"];
-            torrentFiles = null;
             torrentFiles = new Collection<TorrentFile>();
             foreach (ValueDictionary o in files)
             {

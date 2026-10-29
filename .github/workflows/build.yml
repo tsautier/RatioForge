@@ -28,7 +28,37 @@ jobs:
       - name: Build
         run: dotnet build Source/RatioForge.sln --no-restore --configuration Release
       - name: Test
-        run: dotnet test Source/RatioForge.sln --no-build --configuration Release --verbosity normal
+        run: dotnet test Source/RatioForge.sln --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory TestResults
+      - name: Coverage summary
+        if: matrix.os == 'ubuntu-24.04'
+        shell: pwsh
+        run: |
+          # Each test project reports separately; keep the best measurement per assembly.
+          $rows = foreach ($report in Get-ChildItem TestResults -Recurse -Filter coverage.cobertura.xml) {
+            [xml]$coverage = Get-Content $report.FullName -Raw
+            foreach ($package in $coverage.coverage.packages.package) {
+              [pscustomobject]@{
+                Assembly = $package.name
+                Line = [Math]::Round([double]$package.'line-rate' * 100, 1)
+                Branch = [Math]::Round([double]$package.'branch-rate' * 100, 1)
+              }
+            }
+          }
+          "### Code coverage (best test suite per assembly)" >> $env:GITHUB_STEP_SUMMARY
+          "| Assembly | Line coverage | Branch coverage |" >> $env:GITHUB_STEP_SUMMARY
+          "| --- | ---: | ---: |" >> $env:GITHUB_STEP_SUMMARY
+          foreach ($group in $rows | Group-Object Assembly | Sort-Object Name) {
+            $best = $group.Group | Sort-Object Line -Descending | Select-Object -First 1
+            "| $($best.Assembly) | $($best.Line) % | $($best.Branch) % |" >> $env:GITHUB_STEP_SUMMARY
+          }
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-24.04'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: TestResults/**/coverage.cobertura.xml
+          if-no-files-found: error
+          retention-days: 14
 
   audit:
     runs-on: ubuntu-24.04

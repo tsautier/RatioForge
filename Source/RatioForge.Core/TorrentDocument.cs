@@ -30,18 +30,20 @@ public sealed record TorrentDocument(
         }
 
         var torrent = new Torrent(fullPath);
-        IReadOnlyList<IReadOnlyList<string>> trackerTiers = ReadTrackerTiers(torrent);
+        string name = torrent.Name ?? throw new IncompleteTorrentData("Torrent name must be a string");
+        string announce = torrent.Announce ?? throw new IncompleteTorrentData("Tracker URL must be a string");
+        IReadOnlyList<IReadOnlyList<string>> trackerTiers = ReadTrackerTiers(torrent, announce);
         return new TorrentDocument(
             fullPath,
-            torrent.Name,
-            torrent.Announce,
+            name,
+            announce,
             Convert.ToHexString(torrent.InfoHash).ToLowerInvariant(),
             checked((long)torrent.totalLength),
             torrent.PhysicalFiles.Count,
             trackerTiers);
     }
 
-    private static IReadOnlyList<IReadOnlyList<string>> ReadTrackerTiers(Torrent torrent)
+    private static IReadOnlyList<IReadOnlyList<string>> ReadTrackerTiers(Torrent torrent, string announce)
     {
         var tiers = new List<IReadOnlyList<string>>();
         if (torrent.Data.Contains("announce-list") && torrent.Data["announce-list"] is ValueList announceList)
@@ -53,7 +55,7 @@ public sealed record TorrentDocument(
                     : [tierValue];
                 string[] trackers = values
                     .OfType<ValueString>()
-                    .Select(BEncode.String)
+                    .Select(value => value.String)
                     .Where(value => !string.IsNullOrWhiteSpace(value))
                     .Distinct(StringComparer.Ordinal)
                     .ToArray();
@@ -66,11 +68,11 @@ public sealed record TorrentDocument(
 
         if (tiers.Count == 0)
         {
-            tiers.Add([torrent.Announce]);
+            tiers.Add([announce]);
         }
-        else if (!tiers.SelectMany(tier => tier).Contains(torrent.Announce, StringComparer.Ordinal))
+        else if (!tiers.SelectMany(tier => tier).Contains(announce, StringComparer.Ordinal))
         {
-            tiers.Insert(0, [torrent.Announce]);
+            tiers.Insert(0, [announce]);
         }
 
         return tiers;

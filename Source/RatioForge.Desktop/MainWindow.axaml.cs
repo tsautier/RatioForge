@@ -30,15 +30,11 @@ public partial class MainWindow : Window
     private ClientIdentity? clientIdentity;
     private TorrentDocument? torrent;
     private CancellationTokenSource? sessionCancellation;
-    private DateTimeOffset lastCounterUpdate;
+    private readonly SessionTransferCounters counters = new();
     private DateTimeOffset nextAnnounce;
     private DateTimeOffset sessionStarted;
-    private long uploaded;
-    private long downloaded;
-    private long initialCompletedBytes;
     private bool announcing;
     private bool updatingTrackerDisplay;
-    private bool completionAnnounced;
     private bool closingInProgress;
     private bool allowClose;
     private int sessionGeneration;
@@ -47,7 +43,6 @@ public partial class MainWindow : Window
     private ReleaseUpdateResult? availableUpdate;
     private int activeTrackerIndex;
     private DateTimeOffset clientKeyGeneratedAt;
-    private int? lastKnownLeechers;
 
     public MainWindow()
     {
@@ -253,14 +248,10 @@ public partial class MainWindow : Window
                 settings.MaximumDownloadRateKib);
         }
 
-        initialCompletedBytes = (long)(torrent.TotalSize * ((double)(CompletedBox.Value ?? 0) / 100d));
-        downloaded = 0;
-        completionAnnounced = initialCompletedBytes >= torrent.TotalSize;
-        lastKnownLeechers = null;
         ResetSessionButton.IsEnabled = true;
         sessionStarted = DateTimeOffset.UtcNow;
         clientKeyGeneratedAt = sessionStarted;
-        lastCounterUpdate = sessionStarted;
+        counters.Start(torrent.TotalSize, CompletedBox.Value ?? 0, sessionStarted);
         UpdateTransferDisplay(sessionStarted);
         SetSessionActive(true);
         timer.Start();
@@ -270,7 +261,7 @@ public partial class MainWindow : Window
             AddActivity($"Automatic stop enabled: {DescribeStopCondition()}.");
         }
 
-        AddDebug($"Session started: client={((ClientProfile)ClientCombo.SelectedItem).Name}; user_agent={((ClientProfile)ClientCombo.SelectedItem).UserAgent}; completion={CompletedBox.Value:0.##}; initial_completed_bytes={initialCompletedBytes}; upload_kib={UploadRateBox.Value:0}; download_kib={DownloadRateBox.Value:0}; port={PortBox.Value:0}; peers={PeerCountBox.Value:0}; info_hash={torrent.InfoHash}; key={clientIdentity.Key}; peer_id={clientIdentity.PeerId}");
+        AddDebug($"Session started: client={((ClientProfile)ClientCombo.SelectedItem).Name}; user_agent={((ClientProfile)ClientCombo.SelectedItem).UserAgent}; completion={CompletedBox.Value:0.##}; initial_completed_bytes={counters.InitialCompletedBytes}; upload_kib={UploadRateBox.Value:0}; download_kib={DownloadRateBox.Value:0}; port={PortBox.Value:0}; peers={PeerCountBox.Value:0}; info_hash={torrent.InfoHash}; key={clientIdentity.Key}; peer_id={clientIdentity.PeerId}");
         TrackerAnnounceResult? result = await SendAnnounceAsync("started", sessionCancellation.Token);
         await HandleTrackerRejectionAsync(result);
     }
@@ -286,10 +277,10 @@ public partial class MainWindow : Window
         }
 
         bool completed = UpdateTransferCounters(DateTimeOffset.UtcNow);
-        AddActivity($"Sending manual update: uploaded {FormatBytes(uploaded)}, downloaded {FormatBytes(downloaded)}.");
-        AddDebug($"Manual tracker update requested: uploaded={uploaded}; downloaded={downloaded}");
+        AddActivity($"Sending manual update: uploaded {FormatBytes(counters.Uploaded)}, downloaded {FormatBytes(counters.Downloaded)}.");
+        AddDebug($"Manual tracker update requested: uploaded={counters.Uploaded}; downloaded={counters.Downloaded}");
         string eventName = completed ? "completed" : string.Empty;
-        completionAnnounced |= completed;
+        counters.CompletionAnnounced |= completed;
         TrackerAnnounceResult? result = await SendAnnounceAsync(eventName, sessionCancellation.Token);
         await HandleTrackerRejectionAsync(result);
     }
@@ -436,10 +427,7 @@ public partial class MainWindow : Window
 
     private void ResetTransferCounters()
     {
-        uploaded = 0;
-        downloaded = 0;
-        initialCompletedBytes = 0;
-        lastKnownLeechers = null;
+        counters.Reset();
         CompletedBox.Value = 0;
         UploadedText.Text = FormatBytes(0);
         DownloadedText.Text = FormatBytes(0);
@@ -447,7 +435,6 @@ public partial class MainWindow : Window
         RatioText.Text = "Ratio -";
         CompletionText.Text = "Completed 0%";
         ElapsedText.Text = "Elapsed 00:00:00";
-        completionAnnounced = false;
         sessionStarted = default;
         nextAnnounce = default;
     }
@@ -468,7 +455,7 @@ public partial class MainWindow : Window
         bool completed = UpdateTransferCounters(now);
         if (completed && !announcing && sessionCancellation is not null)
         {
-            completionAnnounced = true;
+            counters.CompletionAnnounced = true;
             TrackerAnnounceResult? completionResult = await SendAnnounceAsync("completed", sessionCancellation.Token);
             if (await HandleTrackerRejectionAsync(completionResult) ||
                 tickGeneration != sessionGeneration || sessionCancellation is null)
@@ -481,8 +468,8 @@ public partial class MainWindow : Window
             settings.StopCondition,
             settings.StopValue,
             now - sessionStarted,
-            uploaded,
-            downloaded))
+            counters.Uploaded,
+            counters.Downloaded))
         {
             await EndSessionAsync("Stopped automatically", $"Session stopped automatically: {DescribeStopCondition()}.");
             return;
@@ -499,35 +486,24 @@ public partial class MainWindow : Window
 
     private bool UpdateTransferCounters(DateTimeOffset now)
     {
-        bool wasComplete = torrent is not null && initialCompletedBytes + downloaded >= torrent.TotalSize;
-        double seconds = Math.Max(0, (now - lastCounterUpdate).TotalSeconds);
-        lastCounterUpdate = now;
-        bool uploadPaused = SessionUploadPolicy.IsPaused(settings.PauseUploadWhenNoLeechers, lastKnownLeechers);
-        if (!uploadPaused)
-        {
-            uploaded += (long)((double)(UploadRateBox.Value ?? 0) * 1024d * seconds);
-        }
-        downloaded += (long)((double)(DownloadRateBox.Value ?? 0) * 1024d * seconds);
-        if (torrent is not null)
-        {
-            downloaded = Math.Min(downloaded, Math.Max(0, torrent.TotalSize - initialCompletedBytes));
-        }
-
+        bool completed = counters.Advance(
+            now,
+            torrent?.TotalSize,
+            UploadRateBox.Value ?? 0,
+            DownloadRateBox.Value ?? 0,
+            settings.PauseUploadWhenNoLeechers);
         UpdateTransferDisplay(now);
-        bool isComplete = torrent is not null && initialCompletedBytes + downloaded >= torrent.TotalSize;
-        return !wasComplete && isComplete && !completionAnnounced;
+        return completed;
     }
 
     private void UpdateTransferDisplay(DateTimeOffset now)
     {
-        UploadedText.Text = FormatBytes(uploaded);
-        DownloadedText.Text = FormatBytes(downloaded);
-        double completion = torrent is { TotalSize: > 0 }
-            ? Math.Clamp((initialCompletedBytes + downloaded) * 100d / torrent.TotalSize, 0, 100)
-            : 0;
+        UploadedText.Text = FormatBytes(counters.Uploaded);
+        DownloadedText.Text = FormatBytes(counters.Downloaded);
+        double completion = counters.CompletionPercent(torrent?.TotalSize);
         CompletedBox.Value = (decimal)completion;
         CompletionText.Text = $"Completed {completion:0.##}%";
-        RatioText.Text = downloaded > 0 ? $"Ratio {uploaded / (double)downloaded:0.###}" : "Ratio -";
+        RatioText.Text = counters.Ratio is double ratio ? $"Ratio {ratio:0.###}" : "Ratio -";
         TimeSpan elapsed = sessionStarted == default ? TimeSpan.Zero : now - sessionStarted;
         ElapsedText.Text = $"Elapsed {FormatElapsed(elapsed)}";
     }
@@ -548,58 +524,37 @@ public partial class MainWindow : Window
         {
             RotateClientKeyIfRequired(profile);
             IReadOnlyList<string> trackers = torrent.Trackers;
-            TrackerAnnounceResult? result = null;
-            Exception? finalException = null;
-            for (int offset = 0; offset < trackers.Count; offset++)
-            {
-                int trackerIndex = (activeTrackerIndex + offset) % trackers.Count;
-                string trackerUrl = trackers[trackerIndex];
-                var options = new TrackerAnnounceOptions(
-                    torrent,
+            TorrentDocument document = torrent;
+            ClientIdentity identity = clientIdentity;
+            TrackerFailoverResult failover = await announceClient.AnnounceWithFailoverAsync(
+                trackers,
+                activeTrackerIndex,
+                trackerUrl => new TrackerAnnounceOptions(
+                    document,
                     profile,
-                    uploaded,
-                    downloaded,
+                    counters.Uploaded,
+                    counters.Downloaded,
                     Decimal.ToInt32(PortBox.Value ?? 6881),
                     Decimal.ToInt32(PeerCountBox.Value ?? 200),
                     eventName,
                     AddressCombo.SelectedIndex > 0 ? AddressCombo.SelectedItem?.ToString() ?? string.Empty : string.Empty,
                     settings.ToProxyOptions(),
-                    clientIdentity,
+                    identity,
                     GetRemainingBytes(),
-                    trackerUrl);
-                string diagnosticRequest = BuildDiagnosticRequest(options);
-                AddDebug($"Announce sending: event={eventName}; tracker={trackerUrl}; candidate={trackerIndex + 1}/{trackers.Count}; local_ip={options.LocalIp}; uploaded={uploaded}; downloaded={downloaded}; left={options.Left}");
-                try
-                {
-                    result = await announceClient.AnnounceAsync(options, cancellationToken);
-                    AddAnnounceHistory(eventName, trackerUrl, result, offset + 1, trackerIndex + 1, trackers.Count);
-                    if (result.IsSuccess)
-                    {
-                        if (activeTrackerIndex != trackerIndex)
-                        {
-                            AddActivity($"Tracker failover selected candidate {trackerIndex + 1} of {trackers.Count}.");
-                        }
-
-                        activeTrackerIndex = trackerIndex;
-                        UpdateTrackerDisplay();
-                        break;
-                    }
-
-                    AddDebug($"Tracker candidate rejected announce: candidate={trackerIndex + 1}/{trackers.Count}; message={result.Message}");
-                }
-                catch (Exception exception) when (exception is not OperationCanceledException)
-                {
-                    finalException = exception;
-                    AddAnnounceHistory(
-                        eventName, trackerUrl, exception, diagnosticRequest,
-                        offset + 1, trackerIndex + 1, trackers.Count);
-                    AddDebug($"Tracker candidate failed: candidate={trackerIndex + 1}/{trackers.Count}; type={exception.GetType().FullName}; message={exception.Message}");
-                }
-            }
-
-            if (result is null)
+                    trackerUrl),
+                (options, trackerIndex) => AddDebug($"Announce sending: event={eventName}; tracker={options.TrackerUrl}; candidate={trackerIndex + 1}/{trackers.Count}; local_ip={options.LocalIp}; uploaded={options.Uploaded}; downloaded={options.Downloaded}; left={options.Left}"),
+                attempt => RecordAttempt(eventName, attempt),
+                cancellationToken);
+            TrackerAnnounceResult result = failover.Result;
+            if (failover.SuccessfulIndex is int successfulIndex)
             {
-                throw finalException ?? new InvalidOperationException("No tracker candidate was available.");
+                if (activeTrackerIndex != successfulIndex)
+                {
+                    AddActivity($"Tracker failover selected candidate {successfulIndex + 1} of {trackers.Count}.");
+                }
+
+                activeTrackerIndex = successfulIndex;
+                UpdateTrackerDisplay();
             }
 
             if (announceGeneration != sessionGeneration)
@@ -657,6 +612,28 @@ public partial class MainWindow : Window
         }
     }
 
+    private void RecordAttempt(string eventName, TrackerAttempt attempt)
+    {
+        string trackerUrl = attempt.Options.TrackerUrl ?? attempt.Options.Torrent.Tracker;
+        int candidate = attempt.CandidateIndex + 1;
+        if (attempt.Result is TrackerAnnounceResult result)
+        {
+            AddAnnounceHistory(eventName, trackerUrl, result, attempt.Attempt, candidate, attempt.CandidateCount);
+            if (!result.IsSuccess)
+            {
+                AddDebug($"Tracker candidate rejected announce: candidate={candidate}/{attempt.CandidateCount}; message={result.Message}");
+            }
+
+            return;
+        }
+
+        Exception exception = attempt.Error!;
+        AddAnnounceHistory(
+            eventName, trackerUrl, exception, BuildDiagnosticRequest(attempt.Options),
+            attempt.Attempt, candidate, attempt.CandidateCount);
+        AddDebug($"Tracker candidate failed: candidate={candidate}/{attempt.CandidateCount}; type={exception.GetType().FullName}; message={exception.Message}");
+    }
+
     private void RotateClientKeyIfRequired(ClientProfile profile)
     {
         if (profile.KeyRefreshMinutes <= 0 || clientIdentity is null ||
@@ -674,23 +651,22 @@ public partial class MainWindow : Window
 
     private void UpdateLeecherState(int? leechers)
     {
-        if (leechers is null || leechers == lastKnownLeechers)
+        LeecherStateChange change = counters.UpdateLeechers(leechers, settings.PauseUploadWhenNoLeechers);
+        if (change == LeecherStateChange.Unchanged)
         {
             return;
         }
 
-        bool wasPaused = SessionUploadPolicy.IsPaused(settings.PauseUploadWhenNoLeechers, lastKnownLeechers);
-        lastKnownLeechers = leechers;
-        bool isPaused = SessionUploadPolicy.IsPaused(settings.PauseUploadWhenNoLeechers, leechers);
-        if (isPaused && !wasPaused)
+        if (change == LeecherStateChange.UploadPaused)
         {
             AddActivity("Upload paused because the tracker reports no leechers.");
         }
-        else if (!isPaused && wasPaused)
+        else if (change == LeecherStateChange.UploadResumed)
         {
             AddActivity($"Upload resumed because the tracker reports {leechers} leechers.");
         }
 
+        bool isPaused = SessionUploadPolicy.IsPaused(settings.PauseUploadWhenNoLeechers, leechers);
         AddDebug($"Swarm state updated: leechers={leechers}; upload_paused={isPaused}");
     }
 
@@ -847,7 +823,7 @@ public partial class MainWindow : Window
             .AppendLine($"Tracker candidates: {torrent?.Trackers.Count ?? 0}")
             .AppendLine($"Session profile: {settings.SelectedSessionProfileName}")
             .AppendLine($"Session active: {sessionCancellation is not null}")
-            .AppendLine($"Uploaded: {FormatBytes(uploaded)}; downloaded: {FormatBytes(downloaded)}")
+            .AppendLine($"Uploaded: {FormatBytes(counters.Uploaded)}; downloaded: {FormatBytes(counters.Downloaded)}")
             .AppendLine("Recent activity:");
         foreach (string entry in activity.Take(25))
         {
@@ -1118,20 +1094,20 @@ public partial class MainWindow : Window
             return;
         }
 
-        string eventFilter = HistoryEventFilter.SelectedIndex > 0 ? HistoryEventFilter.SelectedItem?.ToString() ?? string.Empty : string.Empty;
-        string protocolFilter = HistoryProtocolFilter.SelectedIndex > 0 ? HistoryProtocolFilter.SelectedItem?.ToString() ?? string.Empty : string.Empty;
-        string statusFilter = HistoryStatusFilter.SelectedIndex > 0 ? HistoryStatusFilter.SelectedItem?.ToString() ?? string.Empty : string.Empty;
+        var filter = new AnnounceHistoryFilter(
+            SelectedFilterValue(HistoryEventFilter),
+            SelectedFilterValue(HistoryProtocolFilter),
+            SelectedFilterValue(HistoryStatusFilter));
         filteredAnnounceHistory.Clear();
-        foreach (AnnounceHistoryRow entry in announceHistory.Where(entry =>
-            (string.IsNullOrEmpty(eventFilter) || entry.Event.Equals(eventFilter, StringComparison.OrdinalIgnoreCase)) &&
-            (string.IsNullOrEmpty(protocolFilter) || entry.Protocol.Equals(protocolFilter, StringComparison.OrdinalIgnoreCase)) &&
-            (string.IsNullOrEmpty(statusFilter) ||
-             (statusFilter == "Success" && !entry.Status.Equals("Error", StringComparison.OrdinalIgnoreCase)) ||
-             entry.Status.Equals(statusFilter, StringComparison.OrdinalIgnoreCase))))
+        foreach (AnnounceHistoryRow entry in filter.Apply(announceHistory))
         {
             filteredAnnounceHistory.Add(entry);
         }
     }
+
+    // Index 0 is the "All ..." entry of each filter.
+    private static string SelectedFilterValue(ComboBox filter) =>
+        filter.SelectedIndex > 0 ? filter.SelectedItem?.ToString() ?? string.Empty : string.Empty;
 
     private void AnnounceHistoryList_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
@@ -1244,9 +1220,7 @@ public partial class MainWindow : Window
 
     private static string EmptyAsUnknown(string value) => string.IsNullOrWhiteSpace(value) ? "not-provided" : value;
 
-    private long GetRemainingBytes() => torrent is null
-        ? 0
-        : Math.Max(0, torrent.TotalSize - initialCompletedBytes - downloaded);
+    private long GetRemainingBytes() => counters.RemainingBytes(torrent?.TotalSize);
 
     private static string GetPlatformName() =>
         OperatingSystem.IsWindows() ? "Windows" :

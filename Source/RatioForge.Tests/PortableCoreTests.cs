@@ -602,11 +602,11 @@ public class PortableCoreTests
         var listener = new TcpListener(IPAddress.IPv6Loopback, 0);
         listener.Start();
         int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        IPAddress remoteAddress = null;
+        IPAddress? remoteAddress = null;
         Task server = Task.Run(async () =>
         {
             using TcpClient connection = await listener.AcceptTcpClientAsync();
-            remoteAddress = ((IPEndPoint)connection.Client.RemoteEndPoint).Address;
+            remoteAddress = ((IPEndPoint)connection.Client.RemoteEndPoint!).Address;
             await using NetworkStream stream = connection.GetStream();
             var buffer = new byte[4096];
             int bytesRead = await stream.ReadAsync(buffer);
@@ -768,15 +768,15 @@ public class PortableCoreTests
         string response,
         HttpStatusCode statusCode = HttpStatusCode.OK) : HttpMessageHandler
     {
-        public string RequestUri { get; private set; }
+        public string RequestUri { get; private set; } = string.Empty;
 
-        public string UserAgent { get; private set; }
+        public string UserAgent { get; private set; } = string.Empty;
 
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            RequestUri = request.RequestUri?.ToString();
+            RequestUri = request.RequestUri?.ToString() ?? string.Empty;
             UserAgent = request.Headers.UserAgent.ToString();
             var message = new HttpResponseMessage(statusCode)
             {

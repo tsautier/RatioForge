@@ -54,6 +54,6 @@ namespace RatioForge
 
         internal long uploadRate { get; set; }
 
-        internal Uri trackerUri { get; set; }
+        internal Uri? trackerUri { get; set; }
     }
 }

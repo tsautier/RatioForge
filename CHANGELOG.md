@@ -5,6 +5,21 @@ All notable changes to RatioForge will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Dependencies:** Updated Avalonia desktop packages to 12.1.4, Microsoft.NET.Test.Sdk to 18.11.0, and NUnit3TestAdapter to 6.3.1.
+- **Session engine:** Transfer accounting (counters, completion, remaining bytes, ratio, and no-leecher pause) and `announce-list` failover moved from the desktop window into `RatioForge.Core`, where they are unit-tested.
+- **Nullable analysis:** Enabled for every project, including the former legacy parser sources and the tests; nullable warnings now fail the build.
+- **Coverage:** CI collects code coverage, publishes a per-assembly summary, and uploads the Cobertura reports.
+
+### Fixed
+- **Malformed torrents:** A non-string `announce` or `name` value is rejected with a readable error instead of producing an unusable session.
+- **Checksum manifests:** Windows `.sha256` files use LF line endings so `sha256sum -c` works on every platform; the release workflow rejects CRLF manifests.
+
+### Tests
+- Added end-to-end failover tests against local HTTP trackers covering unreachable, rejecting, and accepting candidates.
+
 ## [1.2.4] - 2026-10-29
 
 ### Removed

@@ -20,7 +20,7 @@ namespace RatioForge
         {
         }
 
-        internal VersionChecker(string log, Func<string> getServerVersion)
+        internal VersionChecker(string log, Func<string>? getServerVersion)
         {
             this.userAgent = "RatioForge"
                              + $"/{LocalVersion} ({Environment.OSVersion}; .NET CLR {Environment.Version}; {Environment.UserName}.{Environment.ProcessorCount})";
@@ -31,7 +31,7 @@ namespace RatioForge
 
         public string Log { get; private set; }
 
-        internal string RemoteVersion { get; private set; }
+        internal string RemoteVersion { get; private set; } = string.Empty;
 
         public bool CheckNewVersion()
         {
@@ -42,8 +42,8 @@ namespace RatioForge
                 this.AppendLog("Checking for new version..." + "\n");
                 this.RemoteVersion = this.getServerVersion();
                 //// mainForm.txtRemote.Text = remoteVersion;
-                Version remoteVersion;
-                Version localVersion;
+                Version? remoteVersion;
+                Version? localVersion;
                 if (!Version.TryParse(this.RemoteVersion, out remoteVersion) || !Version.TryParse(LocalVersion, out localVersion))
                 {
                     this.RemoteVersion = "error";

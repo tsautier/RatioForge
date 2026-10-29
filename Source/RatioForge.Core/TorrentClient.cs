@@ -27,16 +27,16 @@ namespace RatioForge
 
         internal bool HashUpperCase { get; set; }
 
-        internal string Headers { get; set; }
+        internal string Headers { get; set; } = string.Empty;
 
-        internal string HttpProtocol { get; set; }
+        internal string HttpProtocol { get; set; } = string.Empty;
 
-        internal string Key { get; set; }
+        internal string Key { get; set; } = string.Empty;
 
         internal string Name { get; set; }
 
-        internal string PeerID { get; set; }
+        internal string PeerID { get; set; } = string.Empty;
 
-        internal string Query { get; set; }
+        internal string Query { get; set; } = string.Empty;
     }
 }

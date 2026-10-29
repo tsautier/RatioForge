@@ -202,6 +202,27 @@ public sealed class DesktopWindowTests
     }
 
     [Test]
+    public void HistoryFilterShouldCombineEventProtocolAndOutcome()
+    {
+        AnnounceHistoryRow[] entries =
+        [
+            new("12:00:00", "started", "https://a.example", "HTTPS", "200", "5 ms", "900s", "OK"),
+            new("12:01:00", "update", "udp://b.example", "UDP", "OK", "7 ms", "900s", "OK"),
+            new("12:02:00", "update", "https://a.example", "HTTPS", "Error", "-", "-", "timeout"),
+        ];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(new AnnounceHistoryFilter().Apply(entries).Count(), Is.EqualTo(3));
+            Assert.That(new AnnounceHistoryFilter(Event: "UPDATE").Apply(entries).Count(), Is.EqualTo(2));
+            Assert.That(new AnnounceHistoryFilter(Status: "Success").Apply(entries).Select(e => e.Time),
+                Is.EqualTo(new[] { "12:00:00", "12:01:00" }));
+            Assert.That(new AnnounceHistoryFilter(Protocol: "HTTPS", Status: "Error").Apply(entries).Single().Result,
+                Is.EqualTo("timeout"));
+        });
+    }
+
+    [Test]
     public void HistoryExportsShouldRedactSecretsAndRemainMachineReadable()
     {
         AnnounceHistoryRow[] entries =

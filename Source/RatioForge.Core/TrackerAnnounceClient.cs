@@ -57,6 +57,18 @@ public sealed record TrackerAnnounceResult(
     int? Ipv4Peers = null,
     int? Ipv6Peers = null);
 
+/// <summary>One tracker candidate tried during a failover announce.</summary>
+public sealed record TrackerAttempt(
+    int Attempt,
+    int CandidateIndex,
+    int CandidateCount,
+    TrackerAnnounceOptions Options,
+    TrackerAnnounceResult? Result,
+    Exception? Error);
+
+/// <summary>Outcome of a failover announce; <see cref="SuccessfulIndex"/> is null when every candidate rejected it.</summary>
+public sealed record TrackerFailoverResult(TrackerAnnounceResult Result, int? SuccessfulIndex);
+
 /// <summary>Sends HTTP and HTTPS tracker announce requests.</summary>
 public sealed class TrackerAnnounceClient : IDisposable
 {
@@ -68,6 +80,51 @@ public sealed class TrackerAnnounceClient : IDisposable
         {
             injectedHttpClient = httpClient;
         }
+    }
+
+    /// <summary>
+    /// Tries each tracker candidate in order, starting at <paramref name="startIndex"/> and wrapping around,
+    /// until one accepts the announce.
+    /// </summary>
+    /// <returns>The accepting tracker's result, otherwise the last tracker response that was received.</returns>
+    /// <exception cref="Exception">The last network failure when no candidate returned any response.</exception>
+    public async Task<TrackerFailoverResult> AnnounceWithFailoverAsync(
+        IReadOnlyList<string> trackers,
+        int startIndex,
+        Func<string, TrackerAnnounceOptions> createOptions,
+        Action<TrackerAnnounceOptions, int>? onSending = null,
+        Action<TrackerAttempt>? onAttempted = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(trackers);
+        ArgumentNullException.ThrowIfNull(createOptions);
+        TrackerAnnounceResult? result = null;
+        Exception? finalException = null;
+        for (int offset = 0; offset < trackers.Count; offset++)
+        {
+            int trackerIndex = (startIndex + offset) % trackers.Count;
+            TrackerAnnounceOptions options = createOptions(trackers[trackerIndex]);
+            onSending?.Invoke(options, trackerIndex);
+            try
+            {
+                // Resume on the caller's context: the callbacks typically update UI state.
+                result = await AnnounceAsync(options, cancellationToken);
+                onAttempted?.Invoke(new TrackerAttempt(offset + 1, trackerIndex, trackers.Count, options, result, null));
+                if (result.IsSuccess)
+                {
+                    return new TrackerFailoverResult(result, trackerIndex);
+                }
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                finalException = exception;
+                onAttempted?.Invoke(new TrackerAttempt(offset + 1, trackerIndex, trackers.Count, options, null, exception));
+            }
+        }
+
+        return result is not null
+            ? new TrackerFailoverResult(result, null)
+            : throw finalException ?? new InvalidOperationException("No tracker candidate was available.");
     }
 
     /// <summary>Sends an announce and parses the tracker's bencoded status.</summary>
@@ -99,6 +156,8 @@ public sealed class TrackerAnnounceClient : IDisposable
 
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
         request.Headers.TryAddWithoutValidation("User-Agent", options.Profile.UserAgent);
+        // A fresh client per announce is deliberate: emulated clients open a new connection for each announce,
+        // announces are minutes apart, and source address or proxy settings may change between them.
         using HttpClient? ownedClient = injectedHttpClient is null
             ? CreateHttpClient(localAddress, proxy: options.Proxy)
             : null;

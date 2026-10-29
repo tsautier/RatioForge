@@ -98,7 +98,7 @@ namespace RatioForge
                 return string.Empty;
             }
 
-            if (!IPAddress.TryParse(address, out IPAddress parsed))
+            if (!IPAddress.TryParse(address, out IPAddress? parsed))
             {
                 throw new FormatException("The local address must be a valid IPv4 or IPv6 address.");
             }

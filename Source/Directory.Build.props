@@ -10,5 +10,6 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/tsautier/RatioForge</RepositoryUrl>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
   </PropertyGroup>
 </Project>

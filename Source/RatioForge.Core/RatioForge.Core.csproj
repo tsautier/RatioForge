@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>14.0</LangVersion>
     <Description>Portable torrent parsing and tracker announce engine for RatioForge</Description>
-    <NoWarn>$(NoWarn);CS8618;CS8625;CS8600;CS8603</NoWarn>
+    
   </PropertyGroup>
 
   <ItemGroup>

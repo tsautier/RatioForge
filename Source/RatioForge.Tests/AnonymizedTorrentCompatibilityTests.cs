@@ -97,6 +97,17 @@ public sealed class AnonymizedTorrentCompatibilityTests
         });
     }
 
+    [Test]
+    public void NonStringAnnounceShouldBeRejectedWithReadableError()
+    {
+        var root = SingleFileTorrent("https://tracker.example/announce", "release.iso", 1024);
+        root["announce"] = Tier("https://tracker.example/announce");
+
+        WithTorrent(root, path => Assert.That(
+            () => TorrentDocument.Load(path),
+            Throws.TypeOf<IncompleteTorrentData>().With.Message.EqualTo("Tracker URL must be a string")));
+    }
+
     private static ValueDictionary SingleFileTorrent(string tracker, string name, long length)
     {
         var root = new ValueDictionary();

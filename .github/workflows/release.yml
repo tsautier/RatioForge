@@ -137,6 +137,7 @@ jobs:
           New-Item -ItemType Directory -Path verification | Out-Null
           gh release download "$env:GITHUB_REF_NAME" --dir verification
           foreach ($checksum in Get-ChildItem verification -Filter *.sha256) {
+            if ([IO.File]::ReadAllText($checksum.FullName).Contains("`r")) { throw "Checksum manifest must use LF line endings: $($checksum.Name)" }
             foreach ($line in Get-Content $checksum.FullName) {
               if ($line -notmatch '^([0-9a-f]{64})  (.+)$') { throw "Invalid checksum entry: $line" }
               $assetPath = Join-Path verification $Matches[2]

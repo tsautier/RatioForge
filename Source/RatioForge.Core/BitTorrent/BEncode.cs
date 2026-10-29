@@ -128,9 +128,9 @@ namespace BitTorrent
 
     internal class ValueString : IBEncodeValue
     {
-        private string v;
+        private string v = string.Empty;
 
-        private byte[] data;
+        private byte[] data = [];
 
         internal int Length
         {
@@ -233,9 +233,9 @@ namespace BitTorrent
 
     internal class ValueNumber : IBEncodeValue
     {
-        private string v;
+        private string v = string.Empty;
 
-        private byte[] data;
+        private byte[] data = [];
 
         internal string String
         {
@@ -317,7 +317,7 @@ namespace BitTorrent
             return Parse(d, (byte)ReadRequiredByte(d, "bencoded value"));
         }
 
-        internal static string String(IBEncodeValue v)
+        internal static string? String(IBEncodeValue v)
         {
             if (v is ValueString) return ((ValueString)v).String;
             else if (v is ValueNumber) return ((ValueNumber)v).String;

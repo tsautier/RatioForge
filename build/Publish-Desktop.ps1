@@ -165,6 +165,7 @@ $checksums = foreach ($file in @($archive, $rawExecutable, $rawLiteExecutable, $
     $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $file
     "$($hash.Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))"
 }
-$checksums | Set-Content -Encoding ascii $checksumPath
+# Always use LF so `sha256sum -c` works on every platform, including manifests produced on Windows.
+[IO.File]::WriteAllText($checksumPath, ($checksums -join "`n") + "`n", [Text.Encoding]::ASCII)
 
 Write-Host "Published ${Runtime}: self-contained=$selfContainedBytes bytes, lite=$liteBytes bytes; metrics=$metricsPath."
